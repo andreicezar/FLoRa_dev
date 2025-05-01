@@ -1,0 +1,51 @@
+# =======================================
+# 🔧 Build files and binaries
+# =======================================
+*.slo
+*.lo
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+*.lai
+*.la
+*.a
+*.lib
+*.exe
+*.out
+*.app
+
+# OMNeT++ build outputs
+src/flora
+src/flora_dbg
+src/Makefile
+src/**/_m.h
+src/**/_m.cc
+
+# =======================================
+# 🗂 Project and IDE settings
+# =======================================
+.settings/
+.project
+.cproject
+.classpath
+
+# CDT index files (can be very large)
+.metadata/.plugins/org.eclipse.cdt.core/*.pdom
+
+# =======================================
+# 📁 Output and simulation logs
+# =======================================
+/out/
+simulations/**/results/
+simulations/**/.tkenvrc
+simulations/**/.qtenvrc
+simulations/**/.cmdenv-log
+simulations/**/valgrind.out
+simulations/**/log.txt
+
+# =======================================
+# ⚙️ Git LFS fallback (optional)
+# =======================================
+*.lfs
