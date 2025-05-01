@@ -1,0 +1,381 @@
+version 3
+run General-0-20250501-19:16:56-868
+attr configname General
+attr datetime 20250501-19:16:56
+attr datetimef 20250501-191656
+attr experiment General
+attr inifile DER_2GW10ED.ini
+attr iterationvars "$0=\"ADRopt\""
+attr iterationvarsd ADRopt
+attr iterationvarsf ADRopt-
+attr measurement "$0=\"ADRopt\""
+attr network flora.simulations.LoRaNetworkTest
+attr processid 868
+attr repetition 0
+attr replication #0
+attr resultdir results
+attr runnumber 0
+attr seedset 0
+config image-path ../../../inet4.4/images
+config network flora.simulations.LoRaNetworkTest
+config output-vector-file ../results/DER_2GW-s-10ed0.ini.vec
+config output-scalar-file ../results/DER_2GW-s-10ed0.ini.sca
+config **.maxTransmissionDuration 1600000s
+config **.vector-recording true
+config **.scalar-recording true
+config **.EV_INFO true
+config *.networkServerApp.EV_INFO true
+config *.debug true
+config **.verbosity 4
+config rng-class cMersenneTwister
+config **.loRaGW[*].numUdpApps 1
+config **.loRaGW[*].packetForwarder.localPort 2000
+config **.loRaGW[*].packetForwarder.destPort 1000
+config **.loRaGW[*].packetForwarder.destAddresses "\"networkServer\""
+config **.loRaGW[*].packetForwarder.indexNumber 0
+config **.networkServer.numApps 1
+config **.networkServer.**.evaluateADRinServer true
+config **.networkServer.app[0].typename NetworkServerApp
+config **.networkServer.app[0].destAddresses "\"loRaGW[*]\""
+config **.networkServer.app[0].destPort 2000
+config **.networkServer.app[0].localPort 1000
+config **.numberOfPacketsToSend 5000
+config **.timeToFirstPacket exponential(10s)
+config **.timeToNextPacket exponential(250s)
+config sim-time-limit 2500000s
+config simtime-resolution -11
+config **.repeat 5
+config **.alohaChannelModel false
+config **.loRaNodes[*].**.initFromDisplayString false
+config **.loRaNodes[*].**.evaluateADRinNode true
+config **.loRaNodes[*].**initialLoRaBW "125 kHz"
+config **.loRaNodes[*].**initialLoRaCR 4
+config **.loRaNodes[*].numApps 1
+config **.loRaNodes[*].app[0].typename SimpleLoRaApp
+config **.LoRaGWNic.radio.iAmGateway true
+config **.loRaGW[*].**.initFromDisplayString false
+config **.loRaNodes[*].LoRaNic.radio.energyConsumer.typename LoRaEnergyConsumer
+config **.loRaNodes[*].**.energySourceModule "\"^.IdealEpEnergyStorage\""
+config **.loRaNodes[*].LoRaNic.radio.energyConsumer.configFile "xmldoc(\"../energyConsumptionParameters.xml\")"
+config **.sigma 3.57
+config **.constraintAreaMinX 0m
+config **.constraintAreaMinY 0m
+config **.constraintAreaMinZ 0m
+config **.constraintAreaMaxZ 0m
+config LoRaNetworkTest.**.radio.separateTransmissionParts false
+config LoRaNetworkTest.**.radio.separateReceptionParts false
+config **.ipv4Delayer.config "xmldoc(\"../cloudDelays.xml\")"
+config **.radio.radioMediumModule "\"LoRaMedium\""
+config **.minInterferenceTime 0s
+config **.displayAddresses false
+config **.constraintAreaMaxX 5000.0m
+config **.constraintAreaMaxY 5000.0m
+config **.numberOfGateways 2
+config **.numberOfNodes 10
+config **.simulationTimeLimit 1600000s
+config **.networkServer.app[0].adrMethod "\"ADRopt\""
+config **.LoRaMedium.pathLossType "\"LoRaLogNormalShadowing\""
+config **.energyDetection -110dBm
+config **.loRaNodes[*].radio.vector-recording true
+config **.loRaNodes[*].LoRaNic.spreadingFactor 12
+config **.loRaNodes[*].LoRaNic.frequency "868.1MHz, 868.3MHz, 868.5MHz"
+config **.loRaNodes[*].LoRaNic.bandwidth 125kHz
+config **.loRaNodes[*].LoRaNic.packetInterval 144s
+config **.loRaGW[0].mobility.initialX 150m
+config **.loRaGW[0].mobility.initialY 150m
+config **.loRaGW[1].mobility.initialX 650m
+config **.loRaGW[1].mobility.initialY 350m
+config **.loRaNodes[0].**.initialX 590.63m
+config **.loRaNodes[0].**.initialY 529.08m
+config **.loRaNodes[1].**.initialX 488.29m
+config **.loRaNodes[1].**.initialY 504.24m
+config **.loRaNodes[2].**.initialX 561.60m
+config **.loRaNodes[2].**.initialY 570.25m
+config **.loRaNodes[3].**.initialX 556.86m
+config **.loRaNodes[3].**.initialY 529.63m
+config **.loRaNodes[4].**.initialX 527.85m
+config **.loRaNodes[4].**.initialY 484.11m
+config **.loRaNodes[5].**.initialX 555.27m
+config **.loRaNodes[5].**.initialY 541.84m
+config **.loRaNodes[6].**.initialX 561.11m
+config **.loRaNodes[6].**.initialY 614.96m
+config **.loRaNodes[7].**.initialX 557.86m
+config **.loRaNodes[7].**.initialY 575.17m
+config **.loRaNodes[8].**.initialX 500.41m
+config **.loRaNodes[8].**.initialY 537.16m
+config **.loRaNodes[9].**.initialX 530.53m
+config **.loRaNodes[9].**.initialY 594.82m
+
+par LoRaNetworkTest.networkServer.ethg$o[0].channel typename "\"inet.node.ethernet.Eth1G\""
+par LoRaNetworkTest.networkServer.ethg$o[0].channel disabled false
+attr mutable ""
+par LoRaNetworkTest.networkServer.ethg$o[0].channel delay 5e-08s
+attr mutable ""
+attr unit s
+par LoRaNetworkTest.networkServer.ethg$o[0].channel datarate 1e+09bps
+attr mutable ""
+attr unit bps
+par LoRaNetworkTest.networkServer.ethg$o[0].channel ber 0
+attr mutable ""
+par LoRaNetworkTest.networkServer.ethg$o[0].channel per 0
+attr mutable ""
+par LoRaNetworkTest.networkServer.ethg$o[0].channel length 10m
+attr unit m
+par LoRaNetworkTest.nsRouter.ethg$o[0].channel typename "\"inet.node.ethernet.Eth1G\""
+par LoRaNetworkTest.nsRouter.ethg$o[0].channel disabled false
+attr mutable ""
+par LoRaNetworkTest.nsRouter.ethg$o[0].channel delay 5e-08s
+attr mutable ""
+attr unit s
+par LoRaNetworkTest.nsRouter.ethg$o[0].channel datarate 1e+09bps
+attr mutable ""
+attr unit bps
+par LoRaNetworkTest.nsRouter.ethg$o[0].channel ber 0
+attr mutable ""
+par LoRaNetworkTest.nsRouter.ethg$o[0].channel per 0
+attr mutable ""
+par LoRaNetworkTest.nsRouter.ethg$o[0].channel length 10m
+attr unit m
+par LoRaNetworkTest.nsRouter.pppg$o[0].channel typename "\"inet.node.ethernet.Eth1G\""
+par LoRaNetworkTest.nsRouter.pppg$o[0].channel disabled false
+attr mutable ""
+par LoRaNetworkTest.nsRouter.pppg$o[0].channel delay 5e-08s
+attr mutable ""
+attr unit s
+par LoRaNetworkTest.nsRouter.pppg$o[0].channel datarate 1e+09bps
+attr mutable ""
+attr unit bps
+par LoRaNetworkTest.nsRouter.pppg$o[0].channel ber 0
+attr mutable ""
+par LoRaNetworkTest.nsRouter.pppg$o[0].channel per 0
+attr mutable ""
+par LoRaNetworkTest.nsRouter.pppg$o[0].channel length 10m
+attr unit m
+par LoRaNetworkTest.internetCloud.pppg$o[0].channel typename "\"inet.node.ethernet.Eth1G\""
+par LoRaNetworkTest.internetCloud.pppg$o[0].channel disabled false
+attr mutable ""
+par LoRaNetworkTest.internetCloud.pppg$o[0].channel delay 5e-08s
+attr mutable ""
+attr unit s
+par LoRaNetworkTest.internetCloud.pppg$o[0].channel datarate 1e+09bps
+attr mutable ""
+attr unit bps
+par LoRaNetworkTest.internetCloud.pppg$o[0].channel ber 0
+attr mutable ""
+par LoRaNetworkTest.internetCloud.pppg$o[0].channel per 0
+attr mutable ""
+par LoRaNetworkTest.internetCloud.pppg$o[0].channel length 10m
+attr unit m
+par LoRaNetworkTest.internetCloud.pppg$o[1].channel typename "\"inet.node.ethernet.Eth1G\""
+par LoRaNetworkTest.internetCloud.pppg$o[1].channel disabled false
+attr mutable ""
+par LoRaNetworkTest.internetCloud.pppg$o[1].channel delay 5e-08s
+attr mutable ""
+attr unit s
+par LoRaNetworkTest.internetCloud.pppg$o[1].channel datarate 1e+09bps
+attr mutable ""
+attr unit bps
+par LoRaNetworkTest.internetCloud.pppg$o[1].channel ber 0
+attr mutable ""
+par LoRaNetworkTest.internetCloud.pppg$o[1].channel per 0
+attr mutable ""
+par LoRaNetworkTest.internetCloud.pppg$o[1].channel length 10m
+attr unit m
+par LoRaNetworkTest.gwRouter[0].pppg$o[0].channel typename "\"inet.node.ethernet.Eth1G\""
+par LoRaNetworkTest.gwRouter[0].pppg$o[0].channel disabled false
+attr mutable ""
+par LoRaNetworkTest.gwRouter[0].pppg$o[0].channel delay 5e-08s
+attr mutable ""
+attr unit s
+par LoRaNetworkTest.gwRouter[0].pppg$o[0].channel datarate 1e+09bps
+attr mutable ""
+attr unit bps
+par LoRaNetworkTest.gwRouter[0].pppg$o[0].channel ber 0
+attr mutable ""
+par LoRaNetworkTest.gwRouter[0].pppg$o[0].channel per 0
+attr mutable ""
+par LoRaNetworkTest.gwRouter[0].pppg$o[0].channel length 10m
+attr unit m
+par LoRaNetworkTest.gwRouter[0].ethg$o[0].channel typename "\"inet.node.ethernet.Eth1G\""
+par LoRaNetworkTest.gwRouter[0].ethg$o[0].channel disabled false
+attr mutable ""
+par LoRaNetworkTest.gwRouter[0].ethg$o[0].channel delay 5e-08s
+attr mutable ""
+attr unit s
+par LoRaNetworkTest.gwRouter[0].ethg$o[0].channel datarate 1e+09bps
+attr mutable ""
+attr unit bps
+par LoRaNetworkTest.gwRouter[0].ethg$o[0].channel ber 0
+attr mutable ""
+par LoRaNetworkTest.gwRouter[0].ethg$o[0].channel per 0
+attr mutable ""
+par LoRaNetworkTest.gwRouter[0].ethg$o[0].channel length 10m
+attr unit m
+par LoRaNetworkTest.loRaGW[0].ethg$o[0].channel typename "\"inet.node.ethernet.Eth1G\""
+par LoRaNetworkTest.loRaGW[0].ethg$o[0].channel disabled false
+attr mutable ""
+par LoRaNetworkTest.loRaGW[0].ethg$o[0].channel delay 5e-08s
+attr mutable ""
+attr unit s
+par LoRaNetworkTest.loRaGW[0].ethg$o[0].channel datarate 1e+09bps
+attr mutable ""
+attr unit bps
+par LoRaNetworkTest.loRaGW[0].ethg$o[0].channel ber 0
+attr mutable ""
+par LoRaNetworkTest.loRaGW[0].ethg$o[0].channel per 0
+attr mutable ""
+par LoRaNetworkTest.loRaGW[0].ethg$o[0].channel length 10m
+attr unit m
+par LoRaNetworkTest.internetCloud.pppg$o[2].channel typename "\"inet.node.ethernet.Eth1G\""
+par LoRaNetworkTest.internetCloud.pppg$o[2].channel disabled false
+attr mutable ""
+par LoRaNetworkTest.internetCloud.pppg$o[2].channel delay 5e-08s
+attr mutable ""
+attr unit s
+par LoRaNetworkTest.internetCloud.pppg$o[2].channel datarate 1e+09bps
+attr mutable ""
+attr unit bps
+par LoRaNetworkTest.internetCloud.pppg$o[2].channel ber 0
+attr mutable ""
+par LoRaNetworkTest.internetCloud.pppg$o[2].channel per 0
+attr mutable ""
+par LoRaNetworkTest.internetCloud.pppg$o[2].channel length 10m
+attr unit m
+par LoRaNetworkTest.gwRouter[1].pppg$o[0].channel typename "\"inet.node.ethernet.Eth1G\""
+par LoRaNetworkTest.gwRouter[1].pppg$o[0].channel disabled false
+attr mutable ""
+par LoRaNetworkTest.gwRouter[1].pppg$o[0].channel delay 5e-08s
+attr mutable ""
+attr unit s
+par LoRaNetworkTest.gwRouter[1].pppg$o[0].channel datarate 1e+09bps
+attr mutable ""
+attr unit bps
+par LoRaNetworkTest.gwRouter[1].pppg$o[0].channel ber 0
+attr mutable ""
+par LoRaNetworkTest.gwRouter[1].pppg$o[0].channel per 0
+attr mutable ""
+par LoRaNetworkTest.gwRouter[1].pppg$o[0].channel length 10m
+attr unit m
+par LoRaNetworkTest.gwRouter[1].ethg$o[0].channel typename "\"inet.node.ethernet.Eth1G\""
+par LoRaNetworkTest.gwRouter[1].ethg$o[0].channel disabled false
+attr mutable ""
+par LoRaNetworkTest.gwRouter[1].ethg$o[0].channel delay 5e-08s
+attr mutable ""
+attr unit s
+par LoRaNetworkTest.gwRouter[1].ethg$o[0].channel datarate 1e+09bps
+attr mutable ""
+attr unit bps
+par LoRaNetworkTest.gwRouter[1].ethg$o[0].channel ber 0
+attr mutable ""
+par LoRaNetworkTest.gwRouter[1].ethg$o[0].channel per 0
+attr mutable ""
+par LoRaNetworkTest.gwRouter[1].ethg$o[0].channel length 10m
+attr unit m
+par LoRaNetworkTest.loRaGW[1].ethg$o[0].channel typename "\"inet.node.ethernet.Eth1G\""
+par LoRaNetworkTest.loRaGW[1].ethg$o[0].channel disabled false
+attr mutable ""
+par LoRaNetworkTest.loRaGW[1].ethg$o[0].channel delay 5e-08s
+attr mutable ""
+attr unit s
+par LoRaNetworkTest.loRaGW[1].ethg$o[0].channel datarate 1e+09bps
+attr mutable ""
+attr unit bps
+par LoRaNetworkTest.loRaGW[1].ethg$o[0].channel ber 0
+attr mutable ""
+par LoRaNetworkTest.loRaGW[1].ethg$o[0].channel per 0
+attr mutable ""
+par LoRaNetworkTest.loRaGW[1].ethg$o[0].channel length 10m
+attr unit m
+par LoRaNetworkTest.loRaNodes[0].interfaceTable typename "\"inet.networklayer.common.InterfaceTable\""
+par LoRaNetworkTest.loRaNodes[0].interfaceTable displayAddresses false
+par LoRaNetworkTest.loRaNodes[0].mobility typename "\"inet.mobility.static.StationaryMobility\""
+par LoRaNetworkTest.loRaNodes[0].mobility subjectModule "\"^\""
+par LoRaNetworkTest.loRaNodes[0].mobility coordinateSystemModule "\"\""
+par LoRaNetworkTest.loRaNodes[0].mobility displayStringTextFormat "\"p: %p\\nv: %v\""
+attr mutable ""
+par LoRaNetworkTest.loRaNodes[0].mobility updateDisplayString true
+par LoRaNetworkTest.loRaNodes[0].mobility constraintAreaMinX 0m
+attr unit m
+par LoRaNetworkTest.loRaNodes[0].mobility constraintAreaMinY 0m
+attr unit m
+par LoRaNetworkTest.loRaNodes[0].mobility constraintAreaMinZ 0m
+attr unit m
+par LoRaNetworkTest.loRaNodes[0].mobility constraintAreaMaxX 5000m
+attr unit m
+par LoRaNetworkTest.loRaNodes[0].mobility constraintAreaMaxY 5000m
+attr unit m
+par LoRaNetworkTest.loRaNodes[0].mobility constraintAreaMaxZ 0m
+attr unit m
+par LoRaNetworkTest.loRaNodes[0].mobility initialX 590.63m
+attr unit m
+par LoRaNetworkTest.loRaNodes[0].mobility initialY 529.08m
+attr unit m
+par LoRaNetworkTest.loRaNodes[0].mobility initialZ 0m
+attr unit m
+par LoRaNetworkTest.loRaNodes[0].mobility initialLatitude "nan deg"
+attr unit deg
+par LoRaNetworkTest.loRaNodes[0].mobility initialLongitude "nan deg"
+attr unit deg
+par LoRaNetworkTest.loRaNodes[0].mobility initialAltitude 0m
+attr unit m
+par LoRaNetworkTest.loRaNodes[0].mobility initialHeading 0deg
+attr unit deg
+par LoRaNetworkTest.loRaNodes[0].mobility initialElevation 0deg
+attr unit deg
+par LoRaNetworkTest.loRaNodes[0].mobility initialBank 0deg
+attr unit deg
+par LoRaNetworkTest.loRaNodes[0].mobility initFromDisplayString false
+par LoRaNetworkTest.loRaNodes[0].mobility updateFromDisplayString true
+par LoRaNetworkTest.loRaNodes[0].LoRaNic.radioIn.channel typename "\"ned.IdealChannel\""
+par LoRaNetworkTest.loRaNodes[0].LoRaNic.mac.upperLayerOut.channel typename "\"ned.IdealChannel\""
+par LoRaNetworkTest.loRaNodes[0].LoRaNic.upperLayerIn.channel typename "\"ned.IdealChannel\""
+par LoRaNetworkTest.loRaNodes[0].LoRaNic.queue typename "\"inet.queueing.queue.DropTailQueue\""
+par LoRaNetworkTest.loRaNodes[0].LoRaNic.queue displayStringTextFormat "\"contains %p pk (%l) pushed %u\\npulled %o removed %r dropped %d\""
+par LoRaNetworkTest.loRaNodes[0].LoRaNic.queue packetCapacity -1
+par LoRaNetworkTest.loRaNodes[0].LoRaNic.queue dataCapacity -1b
+attr unit b
+par LoRaNetworkTest.loRaNodes[0].LoRaNic.queue dropperClass "\"inet::queueing::PacketAtCollectionEndDropper\""
+par LoRaNetworkTest.loRaNodes[0].LoRaNic.queue comparatorClass "\"\""
+par LoRaNetworkTest.loRaNodes[0].LoRaNic.queue bufferModule "\"\""
+scalar LoRaNetworkTest.loRaNodes[0].LoRaNic.queue queueLength:last 0
+attr autoWarmupFilter false
+attr interpolationmode sample-hold
+attr recordingmode last
+attr source "warmup(atomic(constant0(packetPushEnded) + count(packetPushStarted) - count(packetPulled) - count(packetRemoved) - count(packetDropped)))"
+attr title "queue length, last"
+attr unit pk
+scalar LoRaNetworkTest.loRaNodes[0].LoRaNic.queue queueLength:max 0
+attr autoWarmupFilter false
+attr interpolationmode sample-hold
+attr recordingmode max
+attr source "warmup(atomic(constant0(packetPushEnded) + count(packetPushStarted) - count(packetPulled) - count(packetRemoved) - count(packetDropped)))"
+attr title "queue length, max"
+attr unit pk
+scalar LoRaNetworkTest.loRaNodes[0].LoRaNic.queue queueLength:timeavg 0
+attr autoWarmupFilter false
+attr interpolationmode sample-hold
+attr recordingmode timeavg
+attr source "warmup(atomic(constant0(packetPushEnded) + count(packetPushStarted) - count(packetPulled) - count(packetRemoved) - count(packetDropped)))"
+attr title "queue length, timeavg"
+attr unit pk
+scalar LoRaNetworkTest.loRaNodes[0].LoRaNic.queue queueBitLength:last 0
+attr autoWarmupFilter false
+attr interpolationmode sample-hold
+attr recordingmode last
+attr source "warmup(atomic(constant0(packetPushEnded) + sum(packetLength(packetPushStarted)) - sum(packetLength(packetPulled)) - sum(packetLength(packetRemoved)) - sum(packetLength(packetDropped))))"
+attr title "queue bit length, last"
+attr unit b
+scalar LoRaNetworkTest.loRaNodes[0].LoRaNic.queue queueBitLength:max 0
+attr autoWarmupFilter false
+attr interpolationmode sample-hold
+attr recordingmode max
+attr source "warmup(atomic(constant0(packetPushEnded) + sum(packetLength(packetPushStarted)) - sum(packetLength(packetPulled)) - sum(packetLength(packetRemoved)) - sum(packetLength(packetDropped))))"
+attr title "queue bit length, max"
+attr unit b
+scalar LoRaNetworkTest.loRaNodes[0].LoRaNic.queue queueBitLength:timeavg 0
+attr autoWarmupFilter false
+attr interpolationmode sample-hold
+attr recordingmode timeavg
+attr source "warmup(atomic(constant0(packetPushEnded) + sum(packetLength(packetPushStarted)) - sum(packetLength(packetPulled)) - sum(packetLength(packetRemoved)) - sum(packetLength(packetDropped))))"
+attr title "queue bit length, timeavg"
+at

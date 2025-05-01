@@ -1,0 +1,8 @@
+22:54:34 **** Incremental Build of configuration release for project flora ****
+make MODE=release all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+
+22:54:34 Build Finished. 0 errors, 0 warnings. (took 499ms)
+

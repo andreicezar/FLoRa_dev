@@ -1,0 +1,317 @@
+20:51:08 **** Incremental Build of configuration release for project inet4.4 ****
+make MODE=release -j12 all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+*** CCACHE not detected - using precompiled headers
+*** COMPILING with:
+clang++ -c -D__GXX_TYPEINFO_EQUALITY_INLINE=0 -O3 -DNDEBUG=1 -g1 -ffp-contract=off   -MMD -MP -MF .d    -isystem /opt/mingw64/include -Wno-deprecated-register -Wno-unused-function -fno-omit-frame-pointer -DINET_EXPORT  -Wno-overloaded-virtual -include inet/common/precompiled_release.h -DOMNETPPLIBS_IMPORT -DINET_EXPORT -I. -I/c/omnetpp-6.1.0/omnetpp-6.1/include
+*** LINKING with:
+clang++ -shared  -o ../out/clang-release/src/libINET.dll  -Wl,--allow-multiple-definition -Wl,--whole-archive  -Wl,--no-whole-archive -loppenvir -loppsim -lstdc++    -fuse-ld=lld -Wl,-rpath,/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,-rpath,.  -L/usr/bin -L/opt/mingw64/lib -L/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,--out-implib,../out/clang-release/src/libINET.dll.a -Wl,--output-def,../out/clang-release/src/libINET.def -lws2_32 
+Building...
+make[1]: Nothing to be done for 'all-pch'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+20:51:11 **** Build of configuration release for project flora ****
+make MODE=release all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+MSGC: LoRa/LoRaMacControlInfo.msg
+MSGC: LoRa/LoRaMacFrame.msg
+MSGC: LoRa/LoRaTagInfo.msg
+MSGC: LoRaApp/LoRaAppPacket.msg
+MSGC: LoRaPhy/LoRaPhyPreamble.msg
+MSGC: LoRaPhy/LoRaRadioControlInfo.msg
+LoRa/LoRaGWMac.cc
+LoRa/LoRaGWRadio.cc
+In file included from LoRa/LoRaGWRadio.cc:16:
+In file included from LoRa/LoRaGWRadio.h:26:
+./LoRaPhy/LoRaMedium.h:47:20: warning: 'addTransmission' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+   47 |       virtual void addTransmission(const IRadio *transmitter, const ITransmission *transmission);
+      |                    ^
+../../inet4.4/src/inet/physicallayer/wireless/common//medium/RadioMedium.h:229:18: note: overridden virtual function is here
+  229 |     virtual void addTransmission(const IRadio *transmitter, const ITransmission *transmission);
+      |                  ^
+1 warning generated.
+LoRa/LoRaMac.cc
+LoRa/LoRaRadio.cc
+In file included from LoRa/LoRaRadio.cc:17:
+./LoRaPhy/LoRaMedium.h:47:20: warning: 'addTransmission' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+   47 |       virtual void addTransmission(const IRadio *transmitter, const ITransmission *transmission);
+      |                    ^
+../../inet4.4/src/inet/physicallayer/wireless/common/medium/RadioMedium.h:229:18: note: overridden virtual function is here
+  229 |     virtual void addTransmission(const IRadio *transmitter, const ITransmission *transmission);
+      |                  ^
+1 warning generated.
+LoRa/NetworkServerApp.cc
+LoRa/PacketForwarder.cc
+LoRaApp/SimpleLoRaApp.cc
+LoRaEnergyModules/LoRaEnergyConsumer.cc
+LoRaPhy/LoRaAnalogModel.cc
+LoRaPhy/LoRaBandListening.cc
+LoRaPhy/LoRaHataOkumura.cc
+LoRaPhy/LoRaLogNormalShadowing.cc
+LoRaPhy/LoRaMedium.cc
+In file included from LoRaPhy/LoRaMedium.cc:15:
+LoRaPhy/LoRaMedium.h:47:20: warning: 'addTransmission' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+   47 |       virtual void addTransmission(const IRadio *transmitter, const ITransmission *transmission);
+      |                    ^
+../../inet4.4/src/inet/physicallayer/wireless/common/medium/RadioMedium.h:229:18: note: overridden virtual function is here
+  229 |     virtual void addTransmission(const IRadio *transmitter, const ITransmission *transmission);
+      |                  ^
+1 warning generated.
+LoRaPhy/LoRaMediumCache.cc
+In file included from LoRaPhy/LoRaMediumCache.cc:19:
+In file included from ./LoRaPhy/LoRaMediumCache.h:23:
+./LoRaPhy/LoRaMedium.h:47:20: warning: 'addTransmission' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+   47 |       virtual void addTransmission(const IRadio *transmitter, const ITransmission *transmission);
+      |                    ^
+../../inet4.4/src/inet/physicallayer/wireless/common/medium/RadioMedium.h:229:18: note: overridden virtual function is here
+  229 |     virtual void addTransmission(const IRadio *transmitter, const ITransmission *transmission);
+      |                  ^
+1 warning generated.
+LoRaPhy/LoRaModulation.cc
+LoRaPhy/LoRaNeighborCache.cc
+In file included from LoRaPhy/LoRaNeighborCache.cc:18:
+In file included from ./LoRaPhy/LoRaNeighborCache.h:21:
+./LoRaPhy/LoRaMedium.h:47:20: warning: 'addTransmission' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+   47 |       virtual void addTransmission(const IRadio *transmitter, const ITransmission *transmission);
+      |                    ^
+../../inet4.4/src/inet/physicallayer/wireless/common/medium/RadioMedium.h:229:18: note: overridden virtual function is here
+  229 |     virtual void addTransmission(const IRadio *transmitter, const ITransmission *transmission);
+      |                  ^
+1 warning generated.
+LoRaPhy/LoRaPathLossOulu.cc
+LoRaPhy/LoRaReceiver.cc
+LoRaPhy/LoRaReception.cc
+LoRaPhy/LoRaTransmission.cc
+LoRaPhy/LoRaTransmitter.cc
+LoRa/LoRaMacControlInfo_m.cc
+LoRa/LoRaMacFrame_m.cc
+LoRa/LoRaTagInfo_m.cc
+LoRaApp/LoRaAppPacket_m.cc
+LoRaPhy/LoRaPhyPreamble_m.cc
+LoRaPhy/LoRaRadioControlInfo_m.cc
+Creating shared library: ../out/clang-release/src/libflora.dll
+lld: warning: parameter -rpath has no effect on PE/COFF targets
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+20:53:45 **** Incremental Build of configuration release for project inet4.4 ****
+make MODE=release -j12 all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+*** CCACHE not detected - using precompiled headers
+*** COMPILING with:
+clang++ -c -D__GXX_TYPEINFO_EQUALITY_INLINE=0 -O3 -DNDEBUG=1 -g1 -ffp-contract=off   -MMD -MP -MF .d    -isystem /opt/mingw64/include -Wno-deprecated-register -Wno-unused-function -fno-omit-frame-pointer -DINET_EXPORT  -Wno-overloaded-virtual -include inet/common/precompiled_release.h -DOMNETPPLIBS_IMPORT -DINET_EXPORT -I. -I/c/omnetpp-6.1.0/omnetpp-6.1/include
+*** LINKING with:
+clang++ -shared  -o ../out/clang-release/src/libINET.dll  -Wl,--allow-multiple-definition -Wl,--whole-archive  -Wl,--no-whole-archive -loppenvir -loppsim -lstdc++    -fuse-ld=lld -Wl,-rpath,/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,-rpath,.  -L/usr/bin -L/opt/mingw64/lib -L/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,--out-implib,../out/clang-release/src/libINET.dll.a -Wl,--output-def,../out/clang-release/src/libINET.def -lws2_32 
+Building...
+make[1]: Nothing to be done for 'all-pch'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+20:53:48 **** Incremental Build of configuration release for project flora ****
+make MODE=release all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+20:54:15 **** Incremental Build of configuration release for project inet4.4 ****
+make MODE=release -j12 all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+*** CCACHE not detected - using precompiled headers
+*** COMPILING with:
+clang++ -c -D__GXX_TYPEINFO_EQUALITY_INLINE=0 -O3 -DNDEBUG=1 -g1 -ffp-contract=off   -MMD -MP -MF .d    -isystem /opt/mingw64/include -Wno-deprecated-register -Wno-unused-function -fno-omit-frame-pointer -DINET_EXPORT  -Wno-overloaded-virtual -include inet/common/precompiled_release.h -DOMNETPPLIBS_IMPORT -DINET_EXPORT -I. -I/c/omnetpp-6.1.0/omnetpp-6.1/include
+*** LINKING with:
+clang++ -shared  -o ../out/clang-release/src/libINET.dll  -Wl,--allow-multiple-definition -Wl,--whole-archive  -Wl,--no-whole-archive -loppenvir -loppsim -lstdc++    -fuse-ld=lld -Wl,-rpath,/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,-rpath,.  -L/usr/bin -L/opt/mingw64/lib -L/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,--out-implib,../out/clang-release/src/libINET.dll.a -Wl,--output-def,../out/clang-release/src/libINET.def -lws2_32 
+Building...
+make[1]: Nothing to be done for 'all-pch'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+20:54:19 **** Incremental Build of configuration release for project flora ****
+make MODE=release all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+20:57:08 **** Incremental Build of configuration release for project inet4.4 ****
+make MODE=release -j12 all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+*** CCACHE not detected - using precompiled headers
+*** COMPILING with:
+clang++ -c -D__GXX_TYPEINFO_EQUALITY_INLINE=0 -O3 -DNDEBUG=1 -g1 -ffp-contract=off   -MMD -MP -MF .d    -isystem /opt/mingw64/include -Wno-deprecated-register -Wno-unused-function -fno-omit-frame-pointer -DINET_EXPORT  -Wno-overloaded-virtual -include inet/common/precompiled_release.h -DOMNETPPLIBS_IMPORT -DINET_EXPORT -I. -I/c/omnetpp-6.1.0/omnetpp-6.1/include
+*** LINKING with:
+clang++ -shared  -o ../out/clang-release/src/libINET.dll  -Wl,--allow-multiple-definition -Wl,--whole-archive  -Wl,--no-whole-archive -loppenvir -loppsim -lstdc++    -fuse-ld=lld -Wl,-rpath,/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,-rpath,.  -L/usr/bin -L/opt/mingw64/lib -L/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,--out-implib,../out/clang-release/src/libINET.dll.a -Wl,--output-def,../out/clang-release/src/libINET.def -lws2_32 
+Building...
+make[1]: Nothing to be done for 'all-pch'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+20:57:14 **** Incremental Build of configuration release for project flora ****
+make MODE=release all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+20:57:39 **** Incremental Build of configuration release for project inet4.4 ****
+make MODE=release -j12 all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+*** CCACHE not detected - using precompiled headers
+*** COMPILING with:
+clang++ -c -D__GXX_TYPEINFO_EQUALITY_INLINE=0 -O3 -DNDEBUG=1 -g1 -ffp-contract=off   -MMD -MP -MF .d    -isystem /opt/mingw64/include -Wno-deprecated-register -Wno-unused-function -fno-omit-frame-pointer -DINET_EXPORT  -Wno-overloaded-virtual -include inet/common/precompiled_release.h -DOMNETPPLIBS_IMPORT -DINET_EXPORT -I. -I/c/omnetpp-6.1.0/omnetpp-6.1/include
+*** LINKING with:
+clang++ -shared  -o ../out/clang-release/src/libINET.dll  -Wl,--allow-multiple-definition -Wl,--whole-archive  -Wl,--no-whole-archive -loppenvir -loppsim -lstdc++    -fuse-ld=lld -Wl,-rpath,/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,-rpath,.  -L/usr/bin -L/opt/mingw64/lib -L/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,--out-implib,../out/clang-release/src/libINET.dll.a -Wl,--output-def,../out/clang-release/src/libINET.def -lws2_32 
+Building...
+make[1]: Nothing to be done for 'all-pch'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+20:57:43 **** Incremental Build of configuration release for project flora ****
+make MODE=release all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+21:10:10 **** Incremental Build of configuration release for project inet4.4 ****
+make MODE=release -j12 all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+*** CCACHE not detected - using precompiled headers
+*** COMPILING with:
+clang++ -c -D__GXX_TYPEINFO_EQUALITY_INLINE=0 -O3 -DNDEBUG=1 -g1 -ffp-contract=off   -MMD -MP -MF .d    -isystem /opt/mingw64/include -Wno-deprecated-register -Wno-unused-function -fno-omit-frame-pointer -DINET_EXPORT  -Wno-overloaded-virtual -include inet/common/precompiled_release.h -DOMNETPPLIBS_IMPORT -DINET_EXPORT -I. -I/c/omnetpp-6.1.0/omnetpp-6.1/include
+*** LINKING with:
+clang++ -shared  -o ../out/clang-release/src/libINET.dll  -Wl,--allow-multiple-definition -Wl,--whole-archive  -Wl,--no-whole-archive -loppenvir -loppsim -lstdc++    -fuse-ld=lld -Wl,-rpath,/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,-rpath,.  -L/usr/bin -L/opt/mingw64/lib -L/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,--out-implib,../out/clang-release/src/libINET.dll.a -Wl,--output-def,../out/clang-release/src/libINET.def -lws2_32 
+Building...
+make[1]: Nothing to be done for 'all-pch'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+21:10:15 **** Incremental Build of configuration release for project flora ****
+make MODE=release all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+21:10:19 **** Incremental Build of configuration release for project inet4.4 ****
+make MODE=release -j12 all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+*** CCACHE not detected - using precompiled headers
+*** COMPILING with:
+clang++ -c -D__GXX_TYPEINFO_EQUALITY_INLINE=0 -O3 -DNDEBUG=1 -g1 -ffp-contract=off   -MMD -MP -MF .d    -isystem /opt/mingw64/include -Wno-deprecated-register -Wno-unused-function -fno-omit-frame-pointer -DINET_EXPORT  -Wno-overloaded-virtual -include inet/common/precompiled_release.h -DOMNETPPLIBS_IMPORT -DINET_EXPORT -I. -I/c/omnetpp-6.1.0/omnetpp-6.1/include
+*** LINKING with:
+clang++ -shared  -o ../out/clang-release/src/libINET.dll  -Wl,--allow-multiple-definition -Wl,--whole-archive  -Wl,--no-whole-archive -loppenvir -loppsim -lstdc++    -fuse-ld=lld -Wl,-rpath,/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,-rpath,.  -L/usr/bin -L/opt/mingw64/lib -L/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,--out-implib,../out/clang-release/src/libINET.dll.a -Wl,--output-def,../out/clang-release/src/libINET.def -lws2_32 
+Building...
+make[1]: Nothing to be done for 'all-pch'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+21:10:23 **** Incremental Build of configuration release for project flora ****
+make MODE=release all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+21:22:07 **** Incremental Build of configuration release for project inet4.4 ****
+make MODE=release -j12 all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+*** CCACHE not detected - using precompiled headers
+*** COMPILING with:
+clang++ -c -D__GXX_TYPEINFO_EQUALITY_INLINE=0 -O3 -DNDEBUG=1 -g1 -ffp-contract=off   -MMD -MP -MF .d    -isystem /opt/mingw64/include -Wno-deprecated-register -Wno-unused-function -fno-omit-frame-pointer -DINET_EXPORT  -Wno-overloaded-virtual -include inet/common/precompiled_release.h -DOMNETPPLIBS_IMPORT -DINET_EXPORT -I. -I/c/omnetpp-6.1.0/omnetpp-6.1/include
+*** LINKING with:
+clang++ -shared  -o ../out/clang-release/src/libINET.dll  -Wl,--allow-multiple-definition -Wl,--whole-archive  -Wl,--no-whole-archive -loppenvir -loppsim -lstdc++    -fuse-ld=lld -Wl,-rpath,/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,-rpath,.  -L/usr/bin -L/opt/mingw64/lib -L/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,--out-implib,../out/clang-release/src/libINET.dll.a -Wl,--output-def,../out/clang-release/src/libINET.def -lws2_32 
+Building...
+make[1]: Nothing to be done for 'all-pch'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+21:22:12 **** Incremental Build of configuration release for project flora ****
+make MODE=release all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+21:22:16 **** Incremental Build of configuration release for project inet4.4 ****
+make MODE=release -j12 all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+*** CCACHE not detected - using precompiled headers
+*** COMPILING with:
+clang++ -c -D__GXX_TYPEINFO_EQUALITY_INLINE=0 -O3 -DNDEBUG=1 -g1 -ffp-contract=off   -MMD -MP -MF .d    -isystem /opt/mingw64/include -Wno-deprecated-register -Wno-unused-function -fno-omit-frame-pointer -DINET_EXPORT  -Wno-overloaded-virtual -include inet/common/precompiled_release.h -DOMNETPPLIBS_IMPORT -DINET_EXPORT -I. -I/c/omnetpp-6.1.0/omnetpp-6.1/include
+*** LINKING with:
+clang++ -shared  -o ../out/clang-release/src/libINET.dll  -Wl,--allow-multiple-definition -Wl,--whole-archive  -Wl,--no-whole-archive -loppenvir -loppsim -lstdc++    -fuse-ld=lld -Wl,-rpath,/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,-rpath,.  -L/usr/bin -L/opt/mingw64/lib -L/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,--out-implib,../out/clang-release/src/libINET.dll.a -Wl,--output-def,../out/clang-release/src/libINET.def -lws2_32 
+Building...
+make[1]: Nothing to be done for 'all-pch'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+21:22:20 **** Incremental Build of configuration release for project flora ****
+make MODE=release all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+21:37:23 **** Incremental Build of configuration release for project inet4.4 ****
+make MODE=release -j12 all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+*** CCACHE not detected - using precompiled headers
+*** COMPILING with:
+clang++ -c -D__GXX_TYPEINFO_EQUALITY_INLINE=0 -O3 -DNDEBUG=1 -g1 -ffp-contract=off   -MMD -MP -MF .d    -isystem /opt/mingw64/include -Wno-deprecated-register -Wno-unused-function -fno-omit-frame-pointer -DINET_EXPORT  -Wno-overloaded-virtual -include inet/common/precompiled_release.h -DOMNETPPLIBS_IMPORT -DINET_EXPORT -I. -I/c/omnetpp-6.1.0/omnetpp-6.1/include
+*** LINKING with:
+clang++ -shared  -o ../out/clang-release/src/libINET.dll  -Wl,--allow-multiple-definition -Wl,--whole-archive  -Wl,--no-whole-archive -loppenvir -loppsim -lstdc++    -fuse-ld=lld -Wl,-rpath,/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,-rpath,.  -L/usr/bin -L/opt/mingw64/lib -L/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,--out-implib,../out/clang-release/src/libINET.dll.a -Wl,--output-def,../out/clang-release/src/libINET.def -lws2_32 
+Building...
+make[1]: Nothing to be done for 'all-pch'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+21:37:28 **** Incremental Build of configuration release for project flora ****
+make MODE=release all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+21:37:33 **** Incremental Build of configuration release for project inet4.4 ****
+make MODE=release -j12 all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+*** CCACHE not detected - using precompiled headers
+*** COMPILING with:
+clang++ -c -D__GXX_TYPEINFO_EQUALITY_INLINE=0 -O3 -DNDEBUG=1 -g1 -ffp-contract=off   -MMD -MP -MF .d    -isystem /opt/mingw64/include -Wno-deprecated-register -Wno-unused-function -fno-omit-frame-pointer -DINET_EXPORT  -Wno-overloaded-virtual -include inet/common/precompiled_release.h -DOMNETPPLIBS_IMPORT -DINET_EXPORT -I. -I/c/omnetpp-6.1.0/omnetpp-6.1/include
+*** LINKING with:
+clang++ -shared  -o ../out/clang-release/src/libINET.dll  -Wl,--allow-multiple-definition -Wl,--whole-archive  -Wl,--no-whole-archive -loppenvir -loppsim -lstdc++    -fuse-ld=lld -Wl,-rpath,/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,-rpath,.  -L/usr/bin -L/opt/mingw64/lib -L/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,--out-implib,../out/clang-release/src/libINET.dll.a -Wl,--output-def,../out/clang-release/src/libINET.def -lws2_32 
+Building...
+make[1]: Nothing to be done for 'all-pch'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+21:37:37 **** Incremental Build of configuration release for project flora ****
+make MODE=release all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+22:07:47 **** Incremental Build of configuration release for project inet4.4 ****
+make MODE=release -j12 all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+*** CCACHE not detected - using precompiled headers
+*** COMPILING with:
+clang++ -c -D__GXX_TYPEINFO_EQUALITY_INLINE=0 -O3 -DNDEBUG=1 -g1 -ffp-contract=off   -MMD -MP -MF .d    -isystem /opt/mingw64/include -Wno-deprecated-register -Wno-unused-function -fno-omit-frame-pointer -DINET_EXPORT  -Wno-overloaded-virtual -include inet/common/precompiled_release.h -DOMNETPPLIBS_IMPORT -DINET_EXPORT -I. -I/c/omnetpp-6.1.0/omnetpp-6.1/include
+*** LINKING with:
+clang++ -shared  -o ../out/clang-release/src/libINET.dll  -Wl,--allow-multiple-definition -Wl,--whole-archive  -Wl,--no-whole-archive -loppenvir -loppsim -lstdc++    -fuse-ld=lld -Wl,-rpath,/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,-rpath,.  -L/usr/bin -L/opt/mingw64/lib -L/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,--out-implib,../out/clang-release/src/libINET.dll.a -Wl,--output-def,../out/clang-release/src/libINET.def -lws2_32 
+Building...
+make[1]: Nothing to be done for 'all-pch'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+22:08:56 **** Incremental Build of configuration release for project flora ****
+make MODE=release all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+22:25:53 **** Incremental Build of configuration release for project inet4.4 ****
+make MODE=release -j12 all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+*** CCACHE not detected - using precompiled headers
+*** COMPILING with:
+clang++ -c -D__GXX_TYPEINFO_EQUALITY_INLINE=0 -O3 -DNDEBUG=1 -g1 -ffp-contract=off   -MMD -MP -MF .d    -isystem /opt/mingw64/include -Wno-deprecated-register -Wno-unused-function -fno-omit-frame-pointer -DINET_EXPORT  -Wno-overloaded-virtual -include inet/common/precompiled_release.h -DOMNETPPLIBS_IMPORT -DINET_EXPORT -I. -I/c/omnetpp-6.1.0/omnetpp-6.1/include
+*** LINKING with:
+clang++ -shared  -o ../out/clang-release/src/libINET.dll  -Wl,--allow-multiple-definition -Wl,--whole-archive  -Wl,--no-whole-archive -loppenvir -loppsim -lstdc++    -fuse-ld=lld -Wl,-rpath,/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,-rpath,.  -L/usr/bin -L/opt/mingw64/lib -L/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,--out-implib,../out/clang-release/src/libINET.dll.a -Wl,--output-def,../out/clang-release/src/libINET.def -lws2_32 
+Building...
+make[1]: Nothing to be done for 'all-pch'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+22:25:59 **** Incremental Build of configuration release for project flora ****
+make MODE=release all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+22:53:55 **** Incremental Build of configuration release for project inet4.4 ****
+make MODE=release -j12 all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+*** CCACHE not detected - using precompiled headers
+*** COMPILING with:
+clang++ -c -D__GXX_TYPEINFO_EQUALITY_INLINE=0 -O3 -DNDEBUG=1 -g1 -ffp-contract=off   -MMD -MP -MF .d    -isystem /opt/mingw64/include -Wno-deprecated-register -Wno-unused-function -fno-omit-frame-pointer -DINET_EXPORT  -Wno-overloaded-virtual -include inet/common/precompiled_release.h -DOMNETPPLIBS_IMPORT -DINET_EXPORT -I. -I/c/omnetpp-6.1.0/omnetpp-6.1/include
+*** LINKING with:
+clang++ -shared  -o ../out/clang-release/src/libINET.dll  -Wl,--allow-multiple-definition -Wl,--whole-archive  -Wl,--no-whole-archive -loppenvir -loppsim -lstdc++    -fuse-ld=lld -Wl,-rpath,/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,-rpath,.  -L/usr/bin -L/opt/mingw64/lib -L/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,--out-implib,../out/clang-release/src/libINET.dll.a -Wl,--output-def,../out/clang-release/src/libINET.def -lws2_32 
+Building...
+make[1]: Nothing to be done for 'all-pch'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+22:54:04 **** Incremental Build of configuration release for project flora ****
+make MODE=release all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+22:54:31 **** Incremental Build of configuration release for project inet4.4 ****
+make MODE=release -j12 all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+*** CCACHE not detected - using precompiled headers
+*** COMPILING with:
+clang++ -c -D__GXX_TYPEINFO_EQUALITY_INLINE=0 -O3 -DNDEBUG=1 -g1 -ffp-contract=off   -MMD -MP -MF .d    -isystem /opt/mingw64/include -Wno-deprecated-register -Wno-unused-function -fno-omit-frame-pointer -DINET_EXPORT  -Wno-overloaded-virtual -include inet/common/precompiled_release.h -DOMNETPPLIBS_IMPORT -DINET_EXPORT -I. -I/c/omnetpp-6.1.0/omnetpp-6.1/include
+*** LINKING with:
+clang++ -shared  -o ../out/clang-release/src/libINET.dll  -Wl,--allow-multiple-definition -Wl,--whole-archive  -Wl,--no-whole-archive -loppenvir -loppsim -lstdc++    -fuse-ld=lld -Wl,-rpath,/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,-rpath,.  -L/usr/bin -L/opt/mingw64/lib -L/c/omnetpp-6.1.0/omnetpp-6.1/lib -Wl,--out-implib,../out/clang-release/src/libINET.dll.a -Wl,--output-def,../out/clang-release/src/libINET.def -lws2_32 
+Building...
+make[1]: Nothing to be done for 'all-pch'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/inet4.4/src'
+22:54:34 **** Incremental Build of configuration release for project flora ****
+make MODE=release all 
+make[1]: Entering directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/d/Doctorat/anul_2/apps/FLoRa_dev/simulation_tool/flora/src'
