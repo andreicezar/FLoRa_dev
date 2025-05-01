@@ -1,0 +1,139 @@
+
+============================================================
+📦 VECTOR IDS
+============================================================
+TP_VECTORS IDs: [0, 3, 7, 6, 8, 4, 5, 1, 9, 2]
+SF_VECTORS IDs: [0, 3, 7, 6, 8, 4, 5, 1, 9, 2]
+SNIR_VECTORS IDs: [None, None, None, None, None, None, None, None, None, None]
+
+============================================================
+📊 HISTOGRAMS
+============================================================
+Sorted RSSI histograms: ['receivedRSSI']
+
+============================================================
+📡 DATA EXTRACTION RATE (PER SF)
+============================================================
+DER - Data Extraction Rate (Gateway): 0.099050626742305
+DER - Data Extraction Rate (Gateway 1): 0.49643435009289
+DER SF7 (Server): 0.1172209417188
+DER SF8 (Server): 0.31699783794914
+DER SF9 (Server): 0.53918305597579
+DER SF10 (Server): 0.74155373162817
+DER SF11 (Server): 0.83252115927161
+DER SF12 (Server): 0.67163598651802
+
+============================================================
+📉 DATA ERROR RATE (PER NODE)
+============================================================
+Node 0: Data Error Rate = 0.5974 (Sent = 5000, Received = 2013)
+Node 1: Data Error Rate = 0.3422 (Sent = 5000, Received = 3289)
+Node 2: Data Error Rate = 0.4558 (Sent = 5000, Received = 2721)
+Node 3: Data Error Rate = 0.5702 (Sent = 5000, Received = 2149)
+Node 4: Data Error Rate = 0.5450 (Sent = 5000, Received = 2275)
+Node 5: Data Error Rate = 0.6200 (Sent = 5000, Received = 1900)
+Node 6: Data Error Rate = 0.4242 (Sent = 5000, Received = 2879)
+Node 7: Data Error Rate = 0.5128 (Sent = 5000, Received = 2436)
+Node 8: Data Error Rate = 0.3844 (Sent = 5000, Received = 3078)
+Node 9: Data Error Rate = 0.5072 (Sent = 5000, Received = 2464)
+
+============================================================
+📦 PACKET DELIVERY RATIO (PDR PER NODE)
+============================================================
+Node 0: PDR = 0.4026 (Sent = 5000, Received = 2013)
+Node 1: PDR = 0.6578 (Sent = 5000, Received = 3289)
+Node 2: PDR = 0.5442 (Sent = 5000, Received = 2721)
+Node 3: PDR = 0.4298 (Sent = 5000, Received = 2149)
+Node 4: PDR = 0.4550 (Sent = 5000, Received = 2275)
+Node 5: PDR = 0.3800 (Sent = 5000, Received = 1900)
+Node 6: PDR = 0.5758 (Sent = 5000, Received = 2879)
+Node 7: PDR = 0.4872 (Sent = 5000, Received = 2436)
+Node 8: PDR = 0.6156 (Sent = 5000, Received = 3078)
+Node 9: PDR = 0.4928 (Sent = 5000, Received = 2464)
+
+============================================================
+❌ PACKET ERROR RATE / FRAME ERASURE RATE (PER NODE)
+============================================================
+Node 0: PER = 0.5974 (Sent = 5000, Received = 2013)
+Node 1: PER = 0.3422 (Sent = 5000, Received = 3289)
+Node 2: PER = 0.4558 (Sent = 5000, Received = 2721)
+Node 3: PER = 0.5702 (Sent = 5000, Received = 2149)
+Node 4: PER = 0.5450 (Sent = 5000, Received = 2275)
+Node 5: PER = 0.6200 (Sent = 5000, Received = 1900)
+Node 6: PER = 0.4242 (Sent = 5000, Received = 2879)
+Node 7: PER = 0.5128 (Sent = 5000, Received = 2436)
+Node 8: PER = 0.3844 (Sent = 5000, Received = 3078)
+Node 9: PER = 0.5072 (Sent = 5000, Received = 2464)
+
+============================================================
+🔋 ENERGY PER RECEIVED PACKET (mJ PER NODE)
+============================================================
+Node 0: Energy = 437.06 mJ, Received = 2013, Energy/Packet = 0.2171 mJ
+Node 1: Energy = 833.07 mJ, Received = 3289, Energy/Packet = 0.2533 mJ
+Node 2: Energy = 730.93 mJ, Received = 2721, Energy/Packet = 0.2686 mJ
+Node 3: Energy = 696.06 mJ, Received = 2149, Energy/Packet = 0.3239 mJ
+Node 4: Energy = 468.35 mJ, Received = 2275, Energy/Packet = 0.2059 mJ
+Node 5: Energy = 887.99 mJ, Received = 1900, Energy/Packet = 0.4674 mJ
+Node 6: Energy = 884.22 mJ, Received = 2879, Energy/Packet = 0.3071 mJ
+Node 7: Energy = 698.23 mJ, Received = 2436, Energy/Packet = 0.2866 mJ
+Node 8: Energy = 875.12 mJ, Received = 3078, Energy/Packet = 0.2843 mJ
+Node 9: Energy = 934.36 mJ, Received = 2464, Energy/Packet = 0.3792 mJ
+
+============================================================
+⚖️ JAIN'S FAIRNESS INDEX (BASED ON PDR)
+============================================================
+Jain's Fairness Index: 0.9706
+
+============================================================
+📶 NETWORK THROUGHPUT
+============================================================
+Total Received Packets: 25204
+Payload Size: 20 bytes
+Simulation Time: 2500000.0 s
+Throughput: 1.61 bits per second
+
+============================================================
+🕒 TIME ON AIR (ESTIMATED PER NODE)
+============================================================
+Node 0: SF=8, ToA = 156.16 ms
+Node 1: SF=12, ToA = 1712.13 ms
+Node 2: SF=12, ToA = 1712.13 ms
+Node 3: SF=10, ToA = 493.57 ms
+Node 4: SF=7, ToA = 86.27 ms
+Node 5: SF=7, ToA = 86.27 ms
+Node 6: SF=12, ToA = 1712.13 ms
+Node 7: SF=9, ToA = 279.55 ms
+Node 8: SF=12, ToA = 1712.13 ms
+Node 9: SF=7, ToA = 86.27 ms
+
+============================================================
+📶 FINAL SF & TP PER NODE
+============================================================
+SF values: {0: 8, 1: 12, 2: 12, 3: 10, 4: 7, 5: 7, 6: 12, 7: 9, 8: 12, 9: 7}
+TP values: {0: 14, 1: 14, 2: 14, 3: 14, 4: 14, 5: 14, 6: 14, 7: 14, 8: 14, 9: 14}
+Node 0: SF = 8, TP = 14
+Node 1: SF = 12, TP = 14
+Node 2: SF = 12, TP = 14
+Node 3: SF = 10, TP = 14
+Node 4: SF = 7, TP = 14
+Node 5: SF = 7, TP = 14
+Node 6: SF = 12, TP = 14
+Node 7: SF = 9, TP = 14
+Node 8: SF = 12, TP = 14
+Node 9: SF = 7, TP = 14
+
+============================================================
+📉 PACKET LOSS BREAKDOWN
+============================================================
+Node 0: {'RetryLimit': 0, 'Sensitivity': 96, 'Incorrect': 0, 'NotAddressed': 0, 'QueueOverflow': 0, 'Collision': 0, 'MACBusy': 0, 'DutyCycleLimit': 0, 'GatewayBusy': 0, 'GatewayQueueOverflow': 0, 'Unattributed': 0} | Total Lost = 96
+Node 1: {'RetryLimit': 0, 'Sensitivity': 193, 'Incorrect': 0, 'NotAddressed': 0, 'QueueOverflow': 0, 'Collision': 0, 'MACBusy': 0, 'DutyCycleLimit': 0, 'GatewayBusy': 0, 'GatewayQueueOverflow': 0, 'Unattributed': 0} | Total Lost = 193
+Node 2: {'RetryLimit': 0, 'Sensitivity': 145, 'Incorrect': 0, 'NotAddressed': 0, 'QueueOverflow': 0, 'Collision': 0, 'MACBusy': 0, 'DutyCycleLimit': 0, 'GatewayBusy': 0, 'GatewayQueueOverflow': 0, 'Unattributed': 0} | Total Lost = 145
+Node 3: {'RetryLimit': 0, 'Sensitivity': 107, 'Incorrect': 0, 'NotAddressed': 0, 'QueueOverflow': 0, 'Collision': 0, 'MACBusy': 0, 'DutyCycleLimit': 0, 'GatewayBusy': 0, 'GatewayQueueOverflow': 0, 'Unattributed': 0} | Total Lost = 107
+Node 4: {'RetryLimit': 0, 'Sensitivity': 119, 'Incorrect': 0, 'NotAddressed': 0, 'QueueOverflow': 0, 'Collision': 0, 'MACBusy': 0, 'DutyCycleLimit': 0, 'GatewayBusy': 0, 'GatewayQueueOverflow': 0, 'Unattributed': 0} | Total Lost = 119
+Node 5: {'RetryLimit': 0, 'Sensitivity': 101, 'Incorrect': 0, 'NotAddressed': 0, 'QueueOverflow': 0, 'Collision': 0, 'MACBusy': 0, 'DutyCycleLimit': 0, 'GatewayBusy': 0, 'GatewayQueueOverflow': 0, 'Unattributed': 0} | Total Lost = 101
+Node 6: {'RetryLimit': 0, 'Sensitivity': 172, 'Incorrect': 0, 'NotAddressed': 0, 'QueueOverflow': 0, 'Collision': 0, 'MACBusy': 0, 'DutyCycleLimit': 0, 'GatewayBusy': 0, 'GatewayQueueOverflow': 0, 'Unattributed': 0} | Total Lost = 172
+Node 7: {'RetryLimit': 0, 'Sensitivity': 133, 'Incorrect': 0, 'NotAddressed': 0, 'QueueOverflow': 0, 'Collision': 0, 'MACBusy': 0, 'DutyCycleLimit': 0, 'GatewayBusy': 0, 'GatewayQueueOverflow': 0, 'Unattributed': 0} | Total Lost = 133
+Node 8: {'RetryLimit': 0, 'Sensitivity': 166, 'Incorrect': 0, 'NotAddressed': 0, 'QueueOverflow': 0, 'Collision': 0, 'MACBusy': 0, 'DutyCycleLimit': 0, 'GatewayBusy': 0, 'GatewayQueueOverflow': 0, 'Unattributed': 0} | Total Lost = 166
+Node 9: {'RetryLimit': 0, 'Sensitivity': 143, 'Incorrect': 0, 'NotAddressed': 0, 'QueueOverflow': 0, 'Collision': 0, 'MACBusy': 0, 'DutyCycleLimit': 0, 'GatewayBusy': 0, 'GatewayQueueOverflow': 0, 'Unattributed': 0} | Total Lost = 143
+
+Total packet losses (all nodes): 1375

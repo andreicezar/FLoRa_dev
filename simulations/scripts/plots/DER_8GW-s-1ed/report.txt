@@ -1,0 +1,82 @@
+
+============================================================
+📦 VECTOR IDS
+============================================================
+TP_VECTORS IDs: [0]
+SF_VECTORS IDs: [0]
+SNIR_VECTORS IDs: [None]
+
+============================================================
+📊 HISTOGRAMS
+============================================================
+Sorted RSSI histograms: ['receivedRSSI']
+
+============================================================
+📡 DATA EXTRACTION RATE (PER SF)
+============================================================
+DER - Data Extraction Rate (Gateway): 0.00038117019249095
+DER - Data Extraction Rate (Gateway 1): 0.19855044821667
+DER - Data Extraction Rate (Gateway 2): 0.041547550981513
+DER - Data Extraction Rate (Gateway 3): 0.48900363358195
+DER - Data Extraction Rate (Gateway 4): 0.15268776210446
+DER - Data Extraction Rate (Gateway 5): 0.36754587155963
+DER - Data Extraction Rate (Gateway 6): 0.064036592338479
+DER - Data Extraction Rate (Gateway 7): 0.95653036919412
+DER SF7 (Server): 0.98959486384769
+DER SF8 (Server): 0.99378881987578
+DER SF9 (Server): 0
+DER SF10 (Server): 0
+DER SF11 (Server): 0
+DER SF12 (Server): 0
+
+============================================================
+📉 DATA ERROR RATE (PER NODE)
+============================================================
+Node 0: Data Error Rate = 0.0100 (Sent = 5000, Received = 4950)
+
+============================================================
+📦 PACKET DELIVERY RATIO (PDR PER NODE)
+============================================================
+Node 0: PDR = 0.9900 (Sent = 5000, Received = 4950)
+
+============================================================
+❌ PACKET ERROR RATE / FRAME ERASURE RATE (PER NODE)
+============================================================
+Node 0: PER = 0.0100 (Sent = 5000, Received = 4950)
+
+============================================================
+🔋 ENERGY PER RECEIVED PACKET (mJ PER NODE)
+============================================================
+Node 0: Energy = 368.84 mJ, Received = 4950, Energy/Packet = 0.0745 mJ
+
+============================================================
+⚖️ JAIN'S FAIRNESS INDEX (BASED ON PDR)
+============================================================
+Jain's Fairness Index: 1.0000
+
+============================================================
+📶 NETWORK THROUGHPUT
+============================================================
+Total Received Packets: 4950
+Payload Size: 20 bytes
+Simulation Time: 2500000.0 s
+Throughput: 0.32 bits per second
+
+============================================================
+🕒 TIME ON AIR (ESTIMATED PER NODE)
+============================================================
+Node 0: SF=7, ToA = 86.27 ms
+
+============================================================
+📶 FINAL SF & TP PER NODE
+============================================================
+SF values: {0: 7}
+TP values: {0: 14}
+Node 0: SF = 7, TP = 14
+
+============================================================
+📉 PACKET LOSS BREAKDOWN
+============================================================
+Node 0: {'RetryLimit': 0, 'Sensitivity': 29, 'Incorrect': 0, 'NotAddressed': 0, 'QueueOverflow': 0, 'Collision': 0, 'MACBusy': 0, 'DutyCycleLimit': 0, 'GatewayBusy': 0, 'GatewayQueueOverflow': 0, 'Unattributed': 0} | Total Lost = 29
+
+Total packet losses (all nodes): 29
