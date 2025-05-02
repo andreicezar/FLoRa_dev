@@ -43,7 +43,10 @@ void NetworkServerApp::initialize(int stage)
         headerEnabled = par("headerEnabled").boolValue();
         lowDataRateOptimization = par("lowDataRateOptimization").boolValue();
         defaultPayloadSize = par("defaultPayloadSize").intValue();
-
+        EV << "[ADRopt]::initialize: preambleSymbols = " << preambleSymbols << endl;
+        EV << "[ADRopt]::initialize: headerEnabled = " << headerEnabled << endl;
+        EV << "[ADRopt]::initialize: lowDataRateOptimization = " << lowDataRateOptimization << endl;
+        EV << "[ADRopt]::initialize: defaultPayloadSize = " << defaultPayloadSize << endl;
         ASSERT(recvdPackets.size()==0);
         LoRa_ServerPacketReceived = registerSignal("LoRa_ServerPacketReceived");
         localPort = par("localPort");
@@ -306,7 +309,7 @@ void NetworkServerApp::processScheduledPacket(cMessage* selfMsg)
     delete selfMsg;
     receivedPackets.erase(receivedPackets.begin()+packetNumber);
 }
-
+double enterEvaluateADR = 0;
 void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double SNIRinGW, double RSSIinGW)
 {
     bool sendADR = false;
@@ -316,17 +319,22 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
 
     pkt->trimFront();
     auto frame = pkt->removeAtFront<LoRaMacFrame>();
+    int actualPayloadSize = pkt->getByteLength();
     const auto &rcvAppPacket = pkt->peekAtFront<LoRaAppPacket>();
 
     BW = frame->getLoRaBW().get();
     CR = frame->getLoRaCR();
     payloadSize = pkt->getByteLength();
+    EV << "[ADRopt]::evaluateADR: BW = " << BW << endl;
+    EV << "[ADRopt]::evaluateADR: CR = " << CR << endl;
+    EV << "[ADRopt]::evaluateADR: payloadSize = " << payloadSize << endl;
+    EV << "[ADRopt]::evaluateADR: actualPayloadSize = " << actualPayloadSize << endl;
 
     // Check ADR acknowledgment request from end-device
     if (rcvAppPacket->getOptions().getADRACKReq()) {
         sendADRAckRep = true;
     }
-
+    enterEvaluateADR++;
     // Update SNR history for the node
     for (uint i = 0; i < knownNodes.size(); i++) {
         if (knownNodes[i].srcAddr == frame->getTransmitterAddress()) {
@@ -371,12 +379,13 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
             // Determine link margin and required SNR for current SF
             std::map<int, double> SNR_thresholds = {{7,-7.5}, {8,-10}, {9,-12.5}, {10,-15}, {11,-17.5}, {12,-20}};
             int currentSF = frame->getLoRaSF();
+            EV << "[ADRopt] Current SF before ADR decision: " << currentSF << endl;
             double requiredSNR = SNR_thresholds[currentSF];
             double SNRmargin = SNRm - requiredSNR - adrDeviceMargin;
             knownNodes[nodeIndex].calculatedSNRmargin->record(SNRmargin);
 
             if (adrMethod == "ADRopt") {
-                EV_INFO << " ADR type is ADRopt" << EV_ENDL;
+                EV << " ADR type is ADRopt" << EV_ENDL;
                 // ADRopt: optimize SF, TX power, and NbTrans based on predicted PER
                 int optimalSF = currentSF;
                 int optimalNbTrans = 1;
@@ -410,10 +419,15 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
                     for (int NbTrans : {1, 2, 3}) {
                         if (perForSF[sf][NbTrans] < PERtarget) {
                             double ToA = computeTimeOnAir(sf, NbTrans);
+                            EV << "[ADRopt] minToA: " << minToA << endl;
+                            EV << "[ADRopt] computeTimeOnAir: " << ToA << endl;
+                            EV << "[ADRopt] enterEvaluateADR: " << enterEvaluateADR << endl;
+
                             if (ToA < minToA) {
                                 optimalSF = sf;
                                 optimalNbTrans = NbTrans;
                                 minToA = ToA;
+                                sfFound = true;
                             }
                         }
                     }
@@ -455,6 +469,12 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
                     EV_ERROR << "Invalid SF selected: " << optimalSF << endl;
                     return;
                 }
+                EV << "[ADRopt] Selected optimal SF: " << optimalSF
+                        << " | NbTrans: " << optimalNbTrans
+                        << " | enterEvaluateADR: " << enterEvaluateADR
+                        << " | PER: " << perForSF[optimalSF][optimalNbTrans]
+                        << " | SNRmargin: " << SNRmargin << endl;
+
                 // Apply new ADR parameters
                 LoRaOptions newOptions;
                 newOptions.setLoRaSF(optimalSF);
@@ -519,6 +539,10 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
 }
 
 double NetworkServerApp::computeTimeOnAir(int SF, int NbTrans) {
+    EV << "[ADRopt]::computeTimeOnAir: BW = " << BW << endl;
+    EV << "[ADRopt]::computeTimeOnAir: CR = " << CR << endl;
+    EV << "[ADRopt]::computeTimeOnAir: SF = " << SF << endl;
+    EV << "[ADRopt]::computeTimeOnAir: defaultPayloadSize = " << defaultPayloadSize << endl;
     // Compute Symbol Duration
     double Tsymbol = pow(2, SF) / BW;
 
@@ -529,7 +553,7 @@ double NetworkServerApp::computeTimeOnAir(int SF, int NbTrans) {
     int H = headerEnabled ? 0 : 1;  // Header presence (H)
     int D = lowDataRateOptimization ? 1 : 0;  // Low Data Rate Optimization (D)
 
-    int payloadSymbols = 8 + std::max<int>(0, (int)ceil((8 * defaultPayloadSize - 4 * SF + 28 + 16 - 20 * H) /
+    int payloadSymbols = 8 + std::max<int>(0, (int)ceil((8 * payloadSize - 4 * SF + 28 + 16 - 20 * H) /
                                       (4 * (SF - 2 * D))) * (CR + 4));
 
 
