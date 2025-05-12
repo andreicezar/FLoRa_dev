@@ -1,0 +1,145 @@
+
+🎯 SF VECTORS:
+LoRaNetworkTest.loRaNodes[0].app[0]: [12, 12, 12, 12, 12]
+LoRaNetworkTest.loRaNodes[4].app[0]: [12, 12, 12, 12, 12]
+LoRaNetworkTest.loRaNodes[3].app[0]: [12, 12, 12, 12, 12]
+LoRaNetworkTest.loRaNodes[5].app[0]: [12, 12, 12, 12, 12]
+LoRaNetworkTest.loRaNodes[8].app[0]: [12, 12, 12, 12, 12]
+LoRaNetworkTest.loRaNodes[1].app[0]: [12, 12, 12, 12, 12]
+LoRaNetworkTest.loRaNodes[2].app[0]: [12, 12, 12, 12, 12]
+LoRaNetworkTest.loRaNodes[9].app[0]: [12, 12, 12, 12, 12]
+LoRaNetworkTest.loRaNodes[7].app[0]: [12, 12, 12, 12, 12]
+LoRaNetworkTest.loRaNodes[6].app[0]: [12, 12, 12, 12, 12]
+
+🎯 TP VECTORS:
+LoRaNetworkTest.loRaNodes[0].app[0]: [14, 14, 14, 14, 14]
+LoRaNetworkTest.loRaNodes[4].app[0]: [14, 14, 14, 14, 14]
+LoRaNetworkTest.loRaNodes[3].app[0]: [14, 14, 14, 14, 14]
+LoRaNetworkTest.loRaNodes[5].app[0]: [14, 14, 14, 14, 14]
+LoRaNetworkTest.loRaNodes[8].app[0]: [14, 14, 14, 14, 14]
+LoRaNetworkTest.loRaNodes[1].app[0]: [14, 14, 14, 14, 14]
+LoRaNetworkTest.loRaNodes[2].app[0]: [14, 14, 14, 14, 14]
+LoRaNetworkTest.loRaNodes[9].app[0]: [14, 14, 14, 14, 14]
+LoRaNetworkTest.loRaNodes[7].app[0]: [14, 14, 14, 14, 14]
+LoRaNetworkTest.loRaNodes[6].app[0]: [14, 14, 14, 14, 14]
+
+📡 SNIR VECTORS:
+LoRaNetworkTest.networkServer.app[0]: [2.0358049679451, 1.5980136945979, 59.691771301395, 241.82264070084, 317.11730684887]
+LoRaNetworkTest.networkServer.app[0]: [0.68267933277475, 2.104339499058, 66.005998086154, 136.17710295172, 36.889519973522]
+LoRaNetworkTest.networkServer.app[0]: [0.67605571934683, 1.1684377289563, 67.322304891412, 47.684969501285, 56.369566835779]
+LoRaNetworkTest.networkServer.app[0]: [5.1390235304727, 13.331594106899, 19.591865424537, 29.274708668282, 60.088441977506]
+LoRaNetworkTest.networkServer.app[0]: [22.567462429404, 180.61185076155, 30.293483606058, 92.00639482597, 27.956042984312]
+LoRaNetworkTest.networkServer.app[0]: [9.7028392115354, 9.3386461771369, 23.979162761384, 18.565119264157, 51.386503205598]
+LoRaNetworkTest.networkServer.app[0]: [-0.67540501505507, 0.85597188163264, 284.17139596511, 210.25899000918, 94.75905144019]
+LoRaNetworkTest.networkServer.app[0]: [1.3776394717096, 2.0520468400395, 122.89378417189, 85.368540828069, 69.505548041192]
+LoRaNetworkTest.networkServer.app[0]: [17.069412065161, 188.49505974797, 126.02249804574, 221.55221937592, 55.959317677285]
+LoRaNetworkTest.networkServer.app[0]: [10.090499174384, 37.357315950536, 145.87570527593, 59.153033656959, 50.512218438284]
+
+📡 RSSI VECTORS:
+LoRaNetworkTest.networkServer.app[0]: [-114.0094983572, -114.0094983572, -119.24085533606, -113.1650304065, -111.98780055469]
+LoRaNetworkTest.networkServer.app[0]: [-124.54633409065, -123.86632331622, -118.80416597528, -115.65895909293, -121.33096996012]
+LoRaNetworkTest.networkServer.app[0]: [-126.42735360185, -126.42735360185, -118.71841023646, -120.21618490799, -119.48955302443]
+LoRaNetworkTest.networkServer.app[0]: [-119.23369333715, -121.40987420852, -124.07924211018, -122.33507418182, -119.21209056585]
+LoRaNetworkTest.networkServer.app[0]: [-114.4325375706, -114.4325375706, -122.18650782002, -117.36181986338, -122.5352430044]
+LoRaNetworkTest.networkServer.app[0]: [-119.80538476298, -119.80538476298, -123.20165984476, -124.31302256478, -119.89150934566]
+LoRaNetworkTest.networkServer.app[0]: [-118.86600120591, -118.86600120591, -112.46419639286, -113.77245426075, -117.23379295315]
+LoRaNetworkTest.networkServer.app[0]: [-121.11168607584, -122.82081046605, -116.1047008268, -117.68702141745, -118.57980527964]
+LoRaNetworkTest.networkServer.app[0]: [-119.93058793484, -114.24700027699, -115.99551915955, -113.54523895112, -119.52127589584]
+LoRaNetworkTest.networkServer.app[0]: [-126.90950082562, -121.27624334523, -115.36017031226, -119.28022977719, -119.96603557357]
+
+📈 SCALAR DATA USED FOR PLOTTING:
+Node 0: [['sent', 5000], ['received', 4737]]
+Node 1: [['sent', 5000], ['received', 337]]
+Node 2: [['sent', 5000], ['received', 425]]
+Node 3: [['sent', 5000], ['received', 409]]
+Node 4: [['sent', 5000], ['received', 317]]
+Node 5: [['sent', 5000], ['received', 393]]
+Node 6: [['sent', 5000], ['received', 4218]]
+Node 7: [['sent', 5000], ['received', 2068]]
+Node 8: [['sent', 5000], ['received', 330]]
+Node 9: [['sent', 5000], ['received', 4740]]
+
+📊 NODE METRICS SUMMARY (DER, PER, PDR):
+Node  Sent   Recv   PDR      PER      DER     
+----------------------------------------------
+0     5000   4737   0.9474   0.0526   0.0526  
+1     5000   337    0.0674   0.9326   0.9326  
+2     5000   425    0.0850   0.9150   0.9150  
+3     5000   409    0.0818   0.9182   0.9182  
+4     5000   317    0.0634   0.9366   0.9366  
+5     5000   393    0.0786   0.9214   0.9214  
+6     5000   4218   0.8436   0.1564   0.1564  
+7     5000   2068   0.4136   0.5864   0.5864  
+8     5000   330    0.0660   0.9340   0.9340  
+9     5000   4740   0.9480   0.0520   0.0520  
+
+📶 FINAL SPREADING FACTOR (SF) PER NODE:
+Node 0: SF7
+Node 1: SF9
+Node 2: SF7
+Node 3: SF9
+Node 4: SF9
+Node 5: SF9
+Node 6: SF7
+Node 7: SF7
+Node 8: SF8
+Node 9: SF7
+
+📶 FINAL TRANSMISSION POWER (TP) PER NODE:
+Node 0: TP14
+Node 1: TP2
+Node 2: TP2
+Node 3: TP2
+Node 4: TP2
+Node 5: TP2
+Node 6: TP14
+Node 7: TP14
+Node 8: TP2
+Node 9: TP14
+
+📊 DATA EXTRACTION RATE (DER) METRICS
+
+🔧 Overall DER (from server scalar):
+LoRa_NS_DER: 0.35948
+
+📡 Data Extraction Rate per Gateway:
+Gateway 0:  0.00234
+Gateway 1:  0.03014
+Gateway 2:  0.03924
+Gateway 3:  0.18413
+Gateway 4:  0.03067
+Gateway 5:  0.25174
+Gateway 6:  0.03454
+Gateway 7:  0.19823
+
+📶 Data Extraction Rate per Spreading Factor (SF):
+SF7:  0.54847
+SF8:  0.04069
+SF9:  0.17204
+SF10:  0.42557
+SF11:  0.00000
+SF12:  0.99548
+
+📥 PACKETS RECEIVED PER GATEWAY:
+Gateway 0: 107
+Gateway 1: 1357
+Gateway 2: 1776
+Gateway 3: 9002
+Gateway 4: 1444
+Gateway 5: 12573
+Gateway 6: 1628
+Gateway 7: 9881
+
+⏱️ TIME ON AIR PER NODE (in ms):
+Node 0: SF7, Sent=5000, ToA/Packet=46.34ms, ToA Total=231680.0ms
+Node 1: SF9, Sent=5000, ToA/Packet=164.86ms, ToA Total=824320.0ms
+Node 2: SF7, Sent=5000, ToA/Packet=46.34ms, ToA Total=231680.0ms
+Node 3: SF9, Sent=5000, ToA/Packet=164.86ms, ToA Total=824320.0ms
+Node 4: SF9, Sent=5000, ToA/Packet=164.86ms, ToA Total=824320.0ms
+Node 5: SF9, Sent=5000, ToA/Packet=164.86ms, ToA Total=824320.0ms
+Node 6: SF7, Sent=5000, ToA/Packet=46.34ms, ToA Total=231680.0ms
+Node 7: SF7, Sent=5000, ToA/Packet=46.34ms, ToA Total=231680.0ms
+Node 8: SF8, Sent=5000, ToA/Packet=92.67ms, ToA Total=463360.0ms
+Node 9: SF7, Sent=5000, ToA/Packet=46.34ms, ToA Total=231680.0ms
+
+📊 TOTAL NETWORK TIME ON AIR: 4919040.0 ms

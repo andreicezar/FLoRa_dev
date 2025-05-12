@@ -39,11 +39,14 @@ public:
     int framesFromLastADRCommand;
     int lastSeqNoProcessed;
     int numberOfSentADRPackets;
-    std::list<double> adrListSNIR;
+    // std::list<double> adrListSNIR;
+    std::list<std::pair<int, double>> adrListSNIR;  // <gateway ID, SNIR>
     cOutVector *historyAllSNIR;
     cOutVector *historyAllRSSI;
     cOutVector *receivedSeqNumber;
     cOutVector *calculatedSNRmargin;
+    int lastNbTrans = 1;  // ✔️ Start with 1 by default
+
 };
 
 class knownGW
@@ -91,23 +94,20 @@ class NetworkServerApp : public cSimpleModule, cListener
     void evaluateADR(Packet *pkt, L3Address pickedGateway, double SNIRinGW, double RSSIinGW);
     void receiveSignal(cComponent *source, simsignal_t signalID, intval_t value, cObject *details) override;
     bool evaluateADRinServer;
-    cHistogram receivedRSSI;
-    double BW;
-    int preambleSymbols;
-    double CR;
-    bool headerEnabled;
-    bool lowDataRateOptimization;
-    int defaultPayloadSize;
-    int payloadSize;
+    double getMaxSNR(const knownNode& node, int gwId);
+    std::vector<int> getReceptionGateways(const knownNode& node);
+    double inverseCDFexp(double p);
+    int getGatewayIndexByAddress(const L3Address& addr);
+    double getCurrentPER(const knownNode& node);
+    double computeTimeOnAir(int sf, int nbTrans);
 
+    cHistogram receivedRSSI;
   public:
     simsignal_t LoRa_ServerPacketReceived;
     int counterOfSentPacketsFromNodes = 0;
     int counterOfSentPacketsFromNodesPerSF[6];
     int counterUniqueReceivedPackets = 0;
     int counterUniqueReceivedPacketsPerSF[6];
-    double getCurrentPER(const knownNode& node);
-    double computeTimeOnAir(int sf, int NbTrans);
 };
 } //namespace inet
 #endif

@@ -1,0 +1,64 @@
+
+🎯 SF VECTORS:
+LoRaNetworkTest.loRaNodes[0].app[0]: [12, 12, 12, 12, 12]
+
+🎯 TP VECTORS:
+LoRaNetworkTest.loRaNodes[0].app[0]: [14, 14, 14, 14, 14]
+
+📡 SNIR VECTORS:
+LoRaNetworkTest.networkServer.app[0]: [22.300948254039, 169.8614493513, 55.902790657847, 292.77996234135, 161.33134488518]
+
+📡 RSSI VECTORS:
+LoRaNetworkTest.networkServer.app[0]: [-114.69905174596, -114.69905174596, -119.52566511665, -112.33458649411, -114.92281245828]
+
+📈 SCALAR DATA USED FOR PLOTTING:
+Node 0: [['sent', 5000], ['received', 592]]
+
+📊 NODE METRICS SUMMARY (DER, PER, PDR):
+Node  Sent   Recv   PDR      PER      DER     
+----------------------------------------------
+0     5000   592    0.1184   0.8816   0.8816  
+
+📶 FINAL SPREADING FACTOR (SF) PER NODE:
+Node 0: SF8
+
+📶 FINAL TRANSMISSION POWER (TP) PER NODE:
+Node 0: TP2
+
+📊 DATA EXTRACTION RATE (DER) METRICS
+
+🔧 Overall DER (from server scalar):
+LoRa_NS_DER: 0.11840
+
+📡 Data Extraction Rate per Gateway:
+Gateway 0:  0.00199
+Gateway 1:  0.00875
+Gateway 2:  0.00417
+Gateway 3:  0.01113
+Gateway 4:  0.00636
+Gateway 5:  0.00676
+Gateway 6:  0.00497
+Gateway 7:  0.11680
+
+📶 Data Extraction Rate per Spreading Factor (SF):
+SF7:  0.05035
+SF8:  0.19225
+SF9:  0.53488
+SF10:  0.00000
+SF11:  0.00000
+SF12:  1.00000
+
+📥 PACKETS RECEIVED PER GATEWAY:
+Gateway 0: 10
+Gateway 1: 22
+Gateway 2: 19
+Gateway 3: 33
+Gateway 4: 20
+Gateway 5: 21
+Gateway 6: 20
+Gateway 7: 584
+
+⏱️ TIME ON AIR PER NODE (in ms):
+Node 0: SF8, Sent=5000, ToA/Packet=92.67ms, ToA Total=463360.0ms
+
+📊 TOTAL NETWORK TIME ON AIR: 463360.0 ms

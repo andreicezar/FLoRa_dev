@@ -29,13 +29,6 @@ simple NetworkServerApp like IApp
     string adrMethod = default("max");
     double adrDeviceMargin = default(15);
 
-    int defaultPayloadSize = default(20);
-    double BW = default(125000);  // 125 kHz
-    double CR = default(0.8);
-    int preambleSymbols = default(8);
-    bool headerEnabled = default(true);
-    bool lowDataRateOptimization = default(false);
-    
     gates:
     output socketOut @labels(UdpControlInfo/up);
     input socketIn @labels(UdpControlInfo/down);

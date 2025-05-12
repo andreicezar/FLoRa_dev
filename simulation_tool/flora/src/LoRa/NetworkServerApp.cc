@@ -38,15 +38,6 @@ void NetworkServerApp::initialize(int stage)
 {
 
     if (stage == 0) {
-        // Static parameters from .ini
-        preambleSymbols = par("preambleSymbols").intValue();
-        headerEnabled = par("headerEnabled").boolValue();
-        lowDataRateOptimization = par("lowDataRateOptimization").boolValue();
-        defaultPayloadSize = par("defaultPayloadSize").intValue();
-        EV << "[ADRopt]::initialize: preambleSymbols = " << preambleSymbols << endl;
-        EV << "[ADRopt]::initialize: headerEnabled = " << headerEnabled << endl;
-        EV << "[ADRopt]::initialize: lowDataRateOptimization = " << lowDataRateOptimization << endl;
-        EV << "[ADRopt]::initialize: defaultPayloadSize = " << defaultPayloadSize << endl;
         ASSERT(recvdPackets.size()==0);
         LoRa_ServerPacketReceived = registerSignal("LoRa_ServerPacketReceived");
         localPort = par("localPort");
@@ -309,36 +300,40 @@ void NetworkServerApp::processScheduledPacket(cMessage* selfMsg)
     delete selfMsg;
     receivedPackets.erase(receivedPackets.begin()+packetNumber);
 }
-double enterEvaluateADR = 0;
+
+
+void NetworkServerApp::receiveSignal(cComponent *source, simsignal_t signalID, intval_t value, cObject *details)
+{
+    if (simTime() >= getSimulation()->getWarmupPeriod())
+    {
+        counterOfSentPacketsFromNodes++;
+        counterOfSentPacketsFromNodesPerSF[value-7]++;
+    }
+}
+
 void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double SNIRinGW, double RSSIinGW)
 {
     bool sendADR = false;
     bool sendADRAckRep = false;
-    double SNRm;
-    int nodeIndex;
+    double SNRm = 0;
+    int nodeIndex = -1;
 
     pkt->trimFront();
     auto frame = pkt->removeAtFront<LoRaMacFrame>();
-    int actualPayloadSize = pkt->getByteLength();
     const auto &rcvAppPacket = pkt->peekAtFront<LoRaAppPacket>();
 
-    BW = frame->getLoRaBW().get();
-    CR = frame->getLoRaCR();
-    payloadSize = pkt->getByteLength();
-    EV << "[ADRopt]::evaluateADR: BW = " << BW << endl;
-    EV << "[ADRopt]::evaluateADR: CR = " << CR << endl;
-    EV << "[ADRopt]::evaluateADR: payloadSize = " << payloadSize << endl;
-    EV << "[ADRopt]::evaluateADR: actualPayloadSize = " << actualPayloadSize << endl;
+    double BW = frame->getLoRaBW().get();
+    int CR = frame->getLoRaCR();
+    int payloadSize = pkt->getByteLength();    
 
-    // Check ADR acknowledgment request from end-device
     if (rcvAppPacket->getOptions().getADRACKReq()) {
         sendADRAckRep = true;
     }
-    enterEvaluateADR++;
-    // Update SNR history for the node
+
     for (uint i = 0; i < knownNodes.size(); i++) {
         if (knownNodes[i].srcAddr == frame->getTransmitterAddress()) {
-            knownNodes[i].adrListSNIR.push_back(SNIRinGW);
+            int gwIndex = getGatewayIndexByAddress(pickedGateway);
+            knownNodes[i].adrListSNIR.push_back({gwIndex, SNIRinGW});
             knownNodes[i].historyAllSNIR->record(SNIRinGW);
             knownNodes[i].historyAllRSSI->record(RSSIinGW);
             knownNodes[i].receivedSeqNumber->record(frame->getSequenceNumber());
@@ -346,188 +341,146 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
                 knownNodes[i].adrListSNIR.pop_front();
             knownNodes[i].framesFromLastADRCommand++;
 
-            // Decide if an ADR command should be sent (either periodic or upon ADR ACK request)
             if (knownNodes[i].framesFromLastADRCommand == 20 || sendADRAckRep) {
                 nodeIndex = i;
                 knownNodes[i].framesFromLastADRCommand = 0;
                 sendADR = true;
-                // Compute SNRm based on selected ADR method (max or average SNR)
-                if (adrMethod == "ADRopt") {
+
+                if (adrMethod == "ADRopt" || adrMethod == "avg") {
                     double totalSNR = 0;
-                    for (double v : knownNodes[i].adrListSNIR) {
-                        totalSNR += v;
-                    }
+                    for (const auto& pair : knownNodes[i].adrListSNIR)
+                        totalSNR += pair.second;
                     SNRm = totalSNR / knownNodes[i].adrListSNIR.size();
                 } else if (adrMethod == "max") {
-                    SNRm = *max_element(knownNodes[i].adrListSNIR.begin(), knownNodes[i].adrListSNIR.end());
-                } else { // "avg" (default)
-                    double totalSNR = 0;
-                    for (double v : knownNodes[i].adrListSNIR) {
-                        totalSNR += v;
-                    }
-                    SNRm = totalSNR / knownNodes[i].adrListSNIR.size();
+                    SNRm = std::max_element(knownNodes[i].adrListSNIR.begin(), knownNodes[i].adrListSNIR.end(),
+                        [](const auto& a, const auto& b) {
+                            return a.second < b.second;
+                        })->second;
                 }
             }
         }
     }
-        
-    if (sendADR || sendADRAckRep) {
+
+    int currentSF = frame->getLoRaSF();
+    double optimalTxPower = math::mW2dBmW(frame->getLoRaTP()) + 30;
+    int optimalSF = currentSF;
+    if (nodeIndex != -1 && (sendADR || sendADRAckRep)) {
         auto mgmtPacket = makeShared<LoRaAppPacket>();
         mgmtPacket->setMsgType(TXCONFIG);
 
         if (sendADR) {
-            // Determine link margin and required SNR for current SF
             std::map<int, double> SNR_thresholds = {{7,-7.5}, {8,-10}, {9,-12.5}, {10,-15}, {11,-17.5}, {12,-20}};
-            int currentSF = frame->getLoRaSF();
-            EV << "[ADRopt] Current SF before ADR decision: " << currentSF << endl;
             double requiredSNR = SNR_thresholds[currentSF];
             double SNRmargin = SNRm - requiredSNR - adrDeviceMargin;
             knownNodes[nodeIndex].calculatedSNRmargin->record(SNRmargin);
 
             if (adrMethod == "ADRopt") {
-                EV << " ADR type is ADRopt" << EV_ENDL;
-                // ADRopt: optimize SF, TX power, and NbTrans based on predicted PER
-                int optimalSF = currentSF;
+                EV_INFO << " ADR type is ADRopt" << EV_ENDL;
                 int optimalNbTrans = 1;
-                double optimalTxPower = math::mW2dBmW(frame->getLoRaTP()) + 30;  // current TX power in dBm
 
-                // Estimate PER for each SF (assuming current NbTrans)
-                // Define perForSF as a nested map explicitly
-                std::map<int, std::map<int, double>> perForSF;
+                double PERcurrent = getCurrentPER(knownNodes[nodeIndex]);
+                double PERtarget = (PERcurrent > PERmax) ?
+                    std::max(0.01, PERmax - (PERcurrent - PERmax)) : PERmax;
+
+                std::map<int, std::map<int, double>> perPredictions;
+                bool validConfigFound = false;
+                double minToA = std::numeric_limits<double>::max();
+                std::vector<int> receptionGWs = getReceptionGateways(knownNodes[nodeIndex]);
+
                 for (int sf = 7; sf <= 12; sf++) {
-                    // Compute FER using Rayleigh fading model
-                    double estFER = 1.0 - exp(-pow(10, (SNR_thresholds.at(sf) - SNRm) / 10.0));
+                    for (int nbTrans = 1; nbTrans <= 3; nbTrans++) {
+                        double combinedFER = 1.0;
 
-                    // Compute PER for each NbTrans value
-                    for (int NbTrans : {1, 2, 3}) {
-                        perForSF[sf][NbTrans] = pow(estFER, NbTrans);  // PER for given SF & NbTrans
+                        for (int gwId : receptionGWs) {
+                            double maxSNR = getMaxSNR(knownNodes[nodeIndex], gwId);
+                            double sizeS = 20.0 / (1.0 - PERcurrent) * knownNodes[nodeIndex].lastNbTrans;
+
+                            double SNRapproxMax = (
+                                10.0 * log10(inverseCDFexp(0.95 * (1.0 / sizeS))) +
+                                10.0 * log10(inverseCDFexp(0.05 * (1.0 / sizeS)))
+                            ) / 2.0;
+
+                            double SNRhat = maxSNR - SNRapproxMax;
+                            double SNRfloor = -20.0 + ((12 - sf) * 2.5);
+
+                            double FER = 1.0 - exp(-pow(10.0, (SNRfloor - SNRhat) / 10.0));
+
+                            // Înlocuim: perPredictions[sf][nbTrans] *= pow(FER, nbTrans);
+                            // cu:
+                            combinedFER *= FER;
+                        }
+
+                        perPredictions[sf][nbTrans] = pow(combinedFER, nbTrans);
                     }
                 }
 
-                // Compute current PER (requires implemented method)
-                double PERcurrent = getCurrentPER(knownNodes[nodeIndex]);
-                double PERtarget = PERmax;
-
-                if (PERcurrent > PERmax) {
-                    PERtarget = std::max(0.01, PERmax - (PERcurrent - PERmax));
-                }
-
-                // Select the most efficient (SF, NbTrans) that maintains PER <= PERmax
-                bool sfFound = false;
-                double minToA = std::numeric_limits<double>::max();
                 for (int sf = 7; sf <= 12; sf++) {
-                    for (int NbTrans : {1, 2, 3}) {
-                        if (perForSF[sf][NbTrans] < PERtarget) {
-                            double ToA = computeTimeOnAir(sf, NbTrans);
-                            EV << "[ADRopt] minToA: " << minToA << endl;
-                            EV << "[ADRopt] computeTimeOnAir: " << ToA << endl;
-                            EV << "[ADRopt] enterEvaluateADR: " << enterEvaluateADR << endl;
-
+                    for (int nbTrans = 1; nbTrans <= 3; nbTrans++) {
+                        if (perPredictions[sf][nbTrans] <= PERtarget) {
+                            double ToA = computeTimeOnAir(sf, nbTrans);
                             if (ToA < minToA) {
                                 optimalSF = sf;
-                                optimalNbTrans = NbTrans;
+                                optimalNbTrans = nbTrans;
                                 minToA = ToA;
-                                sfFound = true;
+                                validConfigFound = true;
                             }
                         }
                     }
                 }
 
-                // If no SF/NbTrans combination meets PERmax, choose most robust SF12 with max repetitions
-                if (!sfFound) {
+                if (!validConfigFound) {
                     optimalSF = 12;
                     optimalNbTrans = 3;
                 }
+                knownNodes[nodeIndex].lastNbTrans = optimalNbTrans;
 
-                // Adjust repetition count (NbTrans) based on predicted PER at optimal SF
-                if (perForSF[optimalSF][optimalNbTrans] > PERmax) {
-                    optimalNbTrans = std::min(3, optimalNbTrans + 1);
-                } else if (perForSF[optimalSF][optimalNbTrans] < 0.05) {
-                    optimalNbTrans = std::max(1, optimalNbTrans - 1);
-                }
-
-                // Adjust TX power in 3 dB steps if excess or insufficient SNR margin
                 int Nstep = round(SNRmargin / 3);
                 while (Nstep > 0 && optimalTxPower > 2) {
                     optimalTxPower -= 3;
-                    if (optimalTxPower < 2) {
-                        optimalTxPower = 2;
-                        break;
-                    }
                     Nstep--;
                 }
                 while (Nstep < 0 && optimalTxPower < 14) {
                     optimalTxPower += 3;
-                    if (optimalTxPower > 14) {
-                        optimalTxPower = 14;
-                        break;
-                    }
                     Nstep++;
                 }
 
-                if (optimalSF < 7 || optimalSF > 12) {
-                    EV_ERROR << "Invalid SF selected: " << optimalSF << endl;
-                    return;
-                }
-                EV << "[ADRopt] Selected optimal SF: " << optimalSF
-                        << " | NbTrans: " << optimalNbTrans
-                        << " | enterEvaluateADR: " << enterEvaluateADR
-                        << " | PER: " << perForSF[optimalSF][optimalNbTrans]
-                        << " | SNRmargin: " << SNRmargin << endl;
-
-                // Apply new ADR parameters
                 LoRaOptions newOptions;
                 newOptions.setLoRaSF(optimalSF);
-                newOptions.setLoRaTP(optimalTxPower);
+                newOptions.setLoRaTP(std::clamp(optimalTxPower, 2.0, 14.0));
+                EV << "Selected SF: " << optimalSF << endl;
+                EV << "Selected TX Power: " << optimalTxPower << endl;
+                EV << "Selected NbTrans: " << optimalNbTrans << endl;
+                mgmtPacket->setOptions(newOptions);
+            } else {
+                int Nstep = round(SNRmargin / 3);
+
+                while (Nstep > 0 && optimalSF > 7) { optimalSF--; Nstep--; }
+                while (Nstep > 0 && optimalTxPower > 2) { optimalTxPower -= 3; Nstep--; }
+                while (Nstep < 0 && optimalTxPower < 14) { optimalTxPower += 3; Nstep++; }
+
+                LoRaOptions newOptions;
+                newOptions.setLoRaSF(optimalSF);
+                newOptions.setLoRaTP(std::clamp(optimalTxPower, 2.0, 14.0));
                 EV << optimalSF << endl;
                 EV << optimalTxPower << endl;
                 mgmtPacket->setOptions(newOptions);
-
-            } else {
-                // Standard ADR (max/avg): adjust SF and TX power based on SNR margin
-                int Nstep = round(SNRmargin / 3);
-                int newSF = currentSF;
-                double newTxPower = math::mW2dBmW(frame->getLoRaTP()) + 30;  // current TX power in dBm
-
-                // Use available margin to increase data rate (lower SF)
-                while (Nstep > 0 && newSF > 7) {
-                    newSF--;
-                    Nstep--;
-                }
-                // Use remaining margin to reduce TX power
-                while (Nstep > 0 && newTxPower > 2) {
-                    newTxPower -= 3;
-                    Nstep--;
-                }
-                // If negative margin, increase TX power (up to max)
-                while (Nstep < 0 && newTxPower < 14) {
-                    newTxPower += 3;
-                    Nstep++;
-                }
-                if (newTxPower > 14) newTxPower = 14;
-                if (newTxPower < 2)  newTxPower = 2;
-
-                LoRaOptions newOptions;
-                newOptions.setLoRaSF(newSF);
-                newOptions.setLoRaTP(newTxPower);
-                EV << newSF << endl;
-                EV << newTxPower << endl;
-                mgmtPacket->setOptions(newOptions);
             }
 
-            // Count ADR command for statistics (after warmup period)
             if (simTime() >= getSimulation()->getWarmupPeriod()) {
                 knownNodes[nodeIndex].numberOfSentADRPackets++;
             }
         }
 
-        // Send the ADR configuration (TXCONFIG) packet to the end-device via the gateway
         auto frameToSend = makeShared<LoRaMacFrame>();
         frameToSend->setChunkLength(B(par("headerLength").intValue()));
         frameToSend->setReceiverAddress(frame->getTransmitterAddress());
-        frameToSend->setLoRaTP(math::dBmW2mW(14));  // set gateway TX power (14 dBm)
+        // vechi:
+        // frameToSend->setLoRaSF(frame->getLoRaSF());  // ❌ păstrează vechiul SF
+        // frameToSend->setLoRaTP(math::dBmW2mW(14));   // ❌ hardcodat
+
+        frameToSend->setLoRaSF(optimalSF);
+        frameToSend->setLoRaTP(math::dBmW2mW(optimalTxPower));
         frameToSend->setLoRaCF(frame->getLoRaCF());
-        frameToSend->setLoRaSF(frame->getLoRaSF());
         frameToSend->setLoRaBW(frame->getLoRaBW());
 
         auto pktAux = new Packet("ADRPacket");
@@ -538,56 +491,97 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
     }
 }
 
-double NetworkServerApp::computeTimeOnAir(int SF, int NbTrans) {
-    EV << "[ADRopt]::computeTimeOnAir: BW = " << BW << endl;
-    EV << "[ADRopt]::computeTimeOnAir: CR = " << CR << endl;
-    EV << "[ADRopt]::computeTimeOnAir: SF = " << SF << endl;
-    EV << "[ADRopt]::computeTimeOnAir: defaultPayloadSize = " << defaultPayloadSize << endl;
-    // Compute Symbol Duration
-    double Tsymbol = pow(2, SF) / BW;
-
-    // Compute Preamble Duration
-    double Tpreamble = (preambleSymbols + 4.25) * Tsymbol;
-
-    // Compute Payload Symbols
-    int H = headerEnabled ? 0 : 1;  // Header presence (H)
-    int D = lowDataRateOptimization ? 1 : 0;  // Low Data Rate Optimization (D)
-
-    int payloadSymbols = 8 + std::max<int>(0, (int)ceil((8 * payloadSize - 4 * SF + 28 + 16 - 20 * H) /
-                                      (4 * (SF - 2 * D))) * (CR + 4));
-
-
-    // Compute Payload Duration
-    double Tpayload = payloadSymbols * Tsymbol;
-
-    // Compute Total ToA for one transmission
-    double Ttotal = Tpreamble + Tpayload;
-
-    // Multiply by NbTrans (number of repetitions)
-    return Ttotal * NbTrans * 1000;  // Convert to milliseconds
-}
-
 double NetworkServerApp::getCurrentPER(const knownNode& node)
 {
-    int expectedFrames = 20; // the ADR window size
+    int receivedFrames = node.adrListSNIR.size(); // Number of frames in history (max 20)
+    
+    // Get the current NbTrans value from the node
+    int nbTrans = node.lastNbTrans;  // ✔️ Correct
 
-    int receivedFrames = node.adrListSNIR.size();
-    int lostFrames = 20 - receivedFrames;
-
+    
+    // Total expected frames considering frame repetitions
+    // In ADR_opt, the actual size of sample S should be: 20 / (1 - PER_current) × Nb_Trans
+    // We need to solve for PER_current:
+    // If we received 20 frames and NbTrans = 1, PER = 0
+    // If we received 20 frames and NbTrans = 2, some frames were lost
+    
+    // Theoretical maximum number of unique frames that could have been received
+    double theoreticalFrames = receivedFrames / static_cast<double>(nbTrans);
+    
+    // The ADR history window size is 20 frames
+    const int historyWindowSize = 20;
+    
+    // PER calculation: (expected - received) / expected
+    double PERcurrent = (historyWindowSize - theoreticalFrames) / historyWindowSize;
+    
     // Ensure PER is between 0 and 1
-    double PERcurrent = lostFrames / 20.0;
-
+    PERcurrent = std::max(0.0, std::min(1.0, PERcurrent));
+    
     return PERcurrent;
 }
 
-
-void NetworkServerApp::receiveSignal(cComponent *source, simsignal_t signalID, intval_t value, cObject *details)
-{
-    if (simTime() >= getSimulation()->getWarmupPeriod())
-    {
-        counterOfSentPacketsFromNodes++;
-        counterOfSentPacketsFromNodesPerSF[value-7]++;
+int NetworkServerApp::getGatewayIndexByAddress(const L3Address& addr) {
+    for (size_t i = 0; i < knownGateways.size(); i++) {
+        if (knownGateways[i].ipAddr == addr)
+            return i;
     }
+    return -1; // Not found
+}
+
+double NetworkServerApp::computeTimeOnAir(int sf, int nbTrans) {
+    // This is a rough Time-on-Air estimate, customize as needed
+    double BW = 125000.0;  // LoRa bandwidth (e.g., 125 kHz)
+    int payloadSize = 10;  // Adjust to your actual payload
+    int CR = 1;            // Coding rate denominator (e.g., CR=4/5 -> CR = 1)
+
+    double Tsym = pow(2, sf) / BW;
+    double Tpreamble = (8 + 4.25) * Tsym;
+    double DE = (sf >= 11) ? 1 : 0;
+    double H = 0;  // Implicit header disabled
+    double payloadSymbNb = 8 + std::max(
+        std::ceil((8.0 * payloadSize - 4.0 * sf + 28 + 16 - 20 * H)
+                  / (4.0 * (sf - 2 * DE))) * (CR + 4), 0.0);
+
+    double Tpayload = payloadSymbNb * Tsym;
+    return nbTrans * (Tpreamble + Tpayload);  // Account for NbTrans
+}
+
+// Helper function to compute inverse of exponential CDF
+double NetworkServerApp::inverseCDFexp(double p) {
+    // For exponential distribution with mean 1, inverse CDF is -log(1-p)
+    return -log(1.0 - p);
+}
+
+// Function to get list of gateways that have received messages from this node
+std::vector<int> NetworkServerApp::getReceptionGateways(const knownNode& node) {
+    std::vector<int> gwIds;
+    std::set<int> uniqueGwIds;
+    
+    // Iterate through the node's history and collect unique gateway IDs
+    for (const auto& entry : node.adrListSNIR) {
+        int gwId = entry.first;  // Assuming this is where the gateway ID is stored
+        if (uniqueGwIds.find(gwId) == uniqueGwIds.end()) {
+            uniqueGwIds.insert(gwId);
+            gwIds.push_back(gwId);
+        }
+    }
+    
+    return gwIds;
+}
+
+// Function to get maximum SNR for a given node and gateway
+double NetworkServerApp::getMaxSNR(const knownNode& node, int gwId) {
+    double maxSNR = -std::numeric_limits<double>::infinity();
+    
+    // Iterate through the node's history and find max SNR for the specified gateway
+    for (const auto& entry : node.adrListSNIR) {
+        if (entry.first == gwId) {
+            double snr = entry.second;        
+            maxSNR = std::max(maxSNR, snr);
+        }
+    }
+    
+    return maxSNR;
 }
 
 } //namespace inet
