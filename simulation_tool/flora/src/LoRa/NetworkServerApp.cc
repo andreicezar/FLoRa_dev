@@ -315,7 +315,6 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
 {
     bool sendADR = false;
     bool sendADRAckRep = false;
-    double SNRm = 0;
     int nodeIndex = -1;
 
     pkt->trimFront();
@@ -345,18 +344,6 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
                 nodeIndex = i;
                 knownNodes[i].framesFromLastADRCommand = 0;
                 sendADR = true;
-
-                if (adrMethod == "ADRopt" || adrMethod == "avg") {
-                    double totalSNR = 0;
-                    for (const auto& pair : knownNodes[i].adrListSNIR)
-                        totalSNR += pair.second;
-                    SNRm = totalSNR / knownNodes[i].adrListSNIR.size();
-                } else if (adrMethod == "max") {
-                    SNRm = std::max_element(knownNodes[i].adrListSNIR.begin(), knownNodes[i].adrListSNIR.end(),
-                        [](const auto& a, const auto& b) {
-                            return a.second < b.second;
-                        })->second;
-                }
             }
         }
     }
@@ -369,102 +356,95 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
         mgmtPacket->setMsgType(TXCONFIG);
 
         if (sendADR) {
-            std::map<int, double> SNR_thresholds = {{7,-7.5}, {8,-10}, {9,-12.5}, {10,-15}, {11,-17.5}, {12,-20}};
-            double requiredSNR = SNR_thresholds[currentSF];
-            double SNRmargin = SNRm - requiredSNR - adrDeviceMargin;
+            // Only keep ADRopt logic
+            EV_INFO << " ADR type is ADRopt" << EV_ENDL;
+            int optimalNbTrans = 1;
+
+            double PERcurrent = getCurrentPER(knownNodes[nodeIndex]);
+            double PERtarget = (PERcurrent > PERmax) ? 
+                std::max(0.01, PERmax - (PERcurrent - PERmax)) : PERmax;
+
+            std::map<int, std::map<int, double>> perPredictions;
+            bool validConfigFound = false;
+            double minToA = std::numeric_limits<double>::max();
+            std::vector<int> receptionGWs = getReceptionGateways(knownNodes[nodeIndex]);
+
+            std::map<std::pair<int, int>, double> snrhatmean_per_combo; // (sf, nbTrans) => SNRhat_mean
+            for (int sf = 7; sf <= 12; sf++) {
+                for (int nbTrans = 1; nbTrans <= 3; nbTrans++) {
+                    double combinedFER = 1.0;
+                    std::vector<double> snrhat_gws;
+
+                    for (int gwId : receptionGWs) {
+                        double maxSNR = getMaxSNR(knownNodes[nodeIndex], gwId);
+                        double sizeS = 20.0 / (1.0 - PERcurrent) * knownNodes[nodeIndex].lastNbTrans;
+
+                        double SNRapproxMax = (
+                            10.0 * log10(inverseCDFexp(pow(0.95, 1.0 / sizeS))) +
+                            10.0 * log10(inverseCDFexp(pow(0.05, 1.0 / sizeS)))
+                        ) / 2.0;
+
+                        double SNRhat = maxSNR - SNRapproxMax;
+                        snrhat_gws.push_back(SNRhat);
+                        double SNRfloor = -20.0 + ((12 - sf) * 2.5);
+
+                        double FER = 1.0 - exp(-pow(10.0, (SNRfloor - SNRhat) / 10.0));
+                        combinedFER *= FER;
+                    }
+                    
+                    double SNRhat_mean = 0;
+                    if (!snrhat_gws.empty()) {
+                        for (double s : snrhat_gws) SNRhat_mean += s;
+                        SNRhat_mean /= snrhat_gws.size();
+                    }
+                    snrhatmean_per_combo[{sf, nbTrans}] = SNRhat_mean;
+
+                    perPredictions[sf][nbTrans] = pow(combinedFER, nbTrans);
+                }
+            }
+            
+            double SNRfloor_opt = -20.0 + ((12 - optimalSF) * 2.5);
+            double SNRhat_mean_opt = snrhatmean_per_combo[{optimalSF, optimalNbTrans}];
+            double SNRmargin = SNRhat_mean_opt - SNRfloor_opt - adrDeviceMargin;
             knownNodes[nodeIndex].calculatedSNRmargin->record(SNRmargin);
 
-            if (adrMethod == "ADRopt") {
-                EV_INFO << " ADR type is ADRopt" << EV_ENDL;
-                int optimalNbTrans = 1;
-
-                double PERcurrent = getCurrentPER(knownNodes[nodeIndex]);
-                double PERtarget = (PERcurrent > PERmax) ?
-                    std::max(0.01, PERmax - (PERcurrent - PERmax)) : PERmax;
-
-                std::map<int, std::map<int, double>> perPredictions;
-                bool validConfigFound = false;
-                double minToA = std::numeric_limits<double>::max();
-                std::vector<int> receptionGWs = getReceptionGateways(knownNodes[nodeIndex]);
-
-                for (int sf = 7; sf <= 12; sf++) {
-                    for (int nbTrans = 1; nbTrans <= 3; nbTrans++) {
-                        double combinedFER = 1.0;
-
-                        for (int gwId : receptionGWs) {
-                            double maxSNR = getMaxSNR(knownNodes[nodeIndex], gwId);
-                            double sizeS = 20.0 / (1.0 - PERcurrent) * knownNodes[nodeIndex].lastNbTrans;
-
-                            double SNRapproxMax = (
-                                10.0 * log10(inverseCDFexp(0.95 * (1.0 / sizeS))) +
-                                10.0 * log10(inverseCDFexp(0.05 * (1.0 / sizeS)))
-                            ) / 2.0;
-
-                            double SNRhat = maxSNR - SNRapproxMax;
-                            double SNRfloor = -20.0 + ((12 - sf) * 2.5);
-
-                            double FER = 1.0 - exp(-pow(10.0, (SNRfloor - SNRhat) / 10.0));
-
-                            // Înlocuim: perPredictions[sf][nbTrans] *= pow(FER, nbTrans);
-                            // cu:
-                            combinedFER *= FER;
-                        }
-
-                        perPredictions[sf][nbTrans] = pow(combinedFER, nbTrans);
-                    }
-                }
-
-                for (int sf = 7; sf <= 12; sf++) {
-                    for (int nbTrans = 1; nbTrans <= 3; nbTrans++) {
-                        if (perPredictions[sf][nbTrans] <= PERtarget) {
-                            double ToA = computeTimeOnAir(sf, nbTrans);
-                            if (ToA < minToA) {
-                                optimalSF = sf;
-                                optimalNbTrans = nbTrans;
-                                minToA = ToA;
-                                validConfigFound = true;
-                            }
+            for (int sf = 7; sf <= 12; sf++) {
+                for (int nbTrans = 1; nbTrans <= 3; nbTrans++) {
+                    if (perPredictions[sf][nbTrans] <= PERtarget) {
+                        double ToA = computeTimeOnAir(sf, nbTrans);
+                        if (ToA < minToA) {
+                            optimalSF = sf;
+                            optimalNbTrans = nbTrans;
+                            minToA = ToA;
+                            validConfigFound = true;
                         }
                     }
                 }
-
-                if (!validConfigFound) {
-                    optimalSF = 12;
-                    optimalNbTrans = 3;
-                }
-                knownNodes[nodeIndex].lastNbTrans = optimalNbTrans;
-
-                int Nstep = round(SNRmargin / 3);
-                while (Nstep > 0 && optimalTxPower > 2) {
-                    optimalTxPower -= 3;
-                    Nstep--;
-                }
-                while (Nstep < 0 && optimalTxPower < 14) {
-                    optimalTxPower += 3;
-                    Nstep++;
-                }
-
-                LoRaOptions newOptions;
-                newOptions.setLoRaSF(optimalSF);
-                newOptions.setLoRaTP(std::clamp(optimalTxPower, 2.0, 14.0));
-                EV << "Selected SF: " << optimalSF << endl;
-                EV << "Selected TX Power: " << optimalTxPower << endl;
-                EV << "Selected NbTrans: " << optimalNbTrans << endl;
-                mgmtPacket->setOptions(newOptions);
-            } else {
-                int Nstep = round(SNRmargin / 3);
-
-                while (Nstep > 0 && optimalSF > 7) { optimalSF--; Nstep--; }
-                while (Nstep > 0 && optimalTxPower > 2) { optimalTxPower -= 3; Nstep--; }
-                while (Nstep < 0 && optimalTxPower < 14) { optimalTxPower += 3; Nstep++; }
-
-                LoRaOptions newOptions;
-                newOptions.setLoRaSF(optimalSF);
-                newOptions.setLoRaTP(std::clamp(optimalTxPower, 2.0, 14.0));
-                EV << optimalSF << endl;
-                EV << optimalTxPower << endl;
-                mgmtPacket->setOptions(newOptions);
             }
+
+            if (!validConfigFound) {
+                optimalSF = 12;
+                optimalNbTrans = 3;
+            }
+            knownNodes[nodeIndex].lastNbTrans = optimalNbTrans;
+
+            int Nstep = round(SNRmargin / 3);
+            while (Nstep > 0 && optimalTxPower > 2) {
+                optimalTxPower -= 3;
+                Nstep--;
+            }
+            while (Nstep < 0 && optimalTxPower < 14) {
+                optimalTxPower += 3;
+                Nstep++;
+            }
+
+            LoRaOptions newOptions;
+            newOptions.setLoRaSF(optimalSF);
+            newOptions.setLoRaTP(std::clamp(optimalTxPower, 2.0, 14.0));
+            EV << "Selected SF: " << optimalSF << endl;
+            EV << "Selected TX Power: " << optimalTxPower << endl;
+            EV << "Selected NbTrans: " << optimalNbTrans << endl;
+            mgmtPacket->setOptions(newOptions);
 
             if (simTime() >= getSimulation()->getWarmupPeriod()) {
                 knownNodes[nodeIndex].numberOfSentADRPackets++;
@@ -474,10 +454,7 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
         auto frameToSend = makeShared<LoRaMacFrame>();
         frameToSend->setChunkLength(B(par("headerLength").intValue()));
         frameToSend->setReceiverAddress(frame->getTransmitterAddress());
-        // vechi:
-        // frameToSend->setLoRaSF(frame->getLoRaSF());  // ❌ păstrează vechiul SF
-        // frameToSend->setLoRaTP(math::dBmW2mW(14));   // ❌ hardcodat
-
+        
         frameToSend->setLoRaSF(optimalSF);
         frameToSend->setLoRaTP(math::dBmW2mW(optimalTxPower));
         frameToSend->setLoRaCF(frame->getLoRaCF());
