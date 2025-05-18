@@ -1,0 +1,417 @@
+{
+    "General-0-20250509-17:55:08-14212" : {
+        "attributes" : {
+            "configname" : "General",
+            "datetime" : "20250509-17:55:08",
+            "datetimef" : "20250509-175508",
+            "experiment" : "General",
+            "inifile" : "test_scenario.ini",
+            "iterationvars" : "$0=\"max\"",
+            "iterationvarsd" : "max",
+            "iterationvarsf" : "max-",
+            "measurement" : "$0=\"max\"",
+            "network" : "flora.simulations.LoRaNetworkTest",
+            "processid" : "14212",
+            "repetition" : "0",
+            "replication" : "#0",
+            "resultdir" : "results",
+            "runnumber" : "0",
+            "seedset" : "0"
+        },
+        "itervars" : {
+        },
+        "config" : [
+            { "image-path" : "../../../inet4.4/images" },
+            { "network" : "flora.simulations.LoRaNetworkTest" },
+            { "output-vector-file" : "../results/test_scenario-gw8-max-s0.ini.vec" },
+            { "record-eventlog" : "true" },
+            { "**.maxTransmissionDuration" : "4s" },
+            { "**.energyDetection" : "-110dBm" },
+            { "**.vector-recording" : "false" },
+            { "rng-class" : "cMersenneTwister" },
+            { "**.loRaGW[*].numUdpApps" : "1" },
+            { "**.loRaGW[*].packetForwarder.localPort" : "2000" },
+            { "**.loRaGW[*].packetForwarder.destPort" : "1000" },
+            { "**.loRaGW[*].packetForwarder.destAddresses" : "\"networkServer\"" },
+            { "**.loRaGW[*].packetForwarder.indexNumber" : "0" },
+            { "**.networkServer.numApps" : "1" },
+            { "**.networkServer.**.evaluateADRinServer" : "true" },
+            { "**.networkServer.app[0].typename" : "NetworkServerApp" },
+            { "**.networkServer.app[0].destAddresses" : "\"loRaGW[0]\"" },
+            { "**.networkServer.app[0].destPort" : "2000" },
+            { "**.networkServer.app[0].localPort" : "1000" },
+            { "**.networkServer.app[0].adrMethod" : "\"max\"" },
+            { "**.numberOfPacketsToSend" : "5000" },
+            { "sim-time-limit" : "850000s" },
+            { "simtime-resolution" : "-11" },
+            { "repeat" : "1" },
+            { "**.timeToFirstPacket" : "uniform(0s, 144s)" },
+            { "**.timeToNextPacket" : "exponential(144s)" },
+            { "**.alohaChannelModel" : "false" },
+            { "**.loRaNodes[*].**.initFromDisplayString" : "false" },
+            { "**.loRaNodes[*].**.evaluateADRinNode" : "true" },
+            { "**.loRaNodes[*].**initialLoRaBW" : "125 kHz" },
+            { "**.loRaNodes[*].**initialLoRaCR" : "4" },
+            { "**.loRaNodes[*].numApps" : "1" },
+            { "**.loRaNodes[*].app[0].typename" : "SimpleLoRaApp" },
+            { "**.LoRaGWNic.radio.iAmGateway" : "true" },
+            { "**.loRaGW[*].**.initFromDisplayString" : "false" },
+            { "**.loRaNodes[*].LoRaNic.radio.energyConsumer.typename" : "LoRaEnergyConsumer" },
+            { "**.loRaNodes[*].**.energySourceModule" : "\"^.IdealEpEnergyStorage\"" },
+            { "**.loRaNodes[*].LoRaNic.radio.energyConsumer.configFile" : "xmldoc(\"../energyConsumptionParameters.xml\")" },
+            { "**.sigma" : "3.57" },
+            { "**.constraintAreaMinX" : "0m" },
+            { "**.constraintAreaMinY" : "0m" },
+            { "**.constraintAreaMinZ" : "0m" },
+            { "**.constraintAreaMaxZ" : "0m" },
+            { "LoRaNetworkTest.**.radio.separateTransmissionParts" : "false" },
+            { "LoRaNetworkTest.**.radio.separateReceptionParts" : "false" },
+            { "**.ipv4Delayer.config" : "xmldoc(\"../cloudDelays.xml\")" },
+            { "**.radio.radioMediumModule" : "\"LoRaMedium\"" },
+            { "**.LoRaMedium.pathLossType" : "\"LoRaLogNormalShadowing\"" },
+            { "**.minInterferenceTime" : "0s" },
+            { "**.displayAddresses" : "false" },
+            { "**.numberOfNodes" : "1" },
+            { "**.numberOfGateways" : "8" },
+            { "**.constraintAreaMaxX" : "2376.0m" },
+            { "**.constraintAreaMaxY" : "1090.0m" },
+            { "**.loRaGW[0].mobility.initialX" : "150m" },
+            { "**.loRaGW[0].mobility.initialY" : "150m" },
+            { "**.loRaGW[1].mobility.initialX" : "650m" },
+            { "**.loRaGW[1].mobility.initialY" : "350m" },
+            { "**.loRaGW[2].mobility.initialX" : "350m" },
+            { "**.loRaGW[2].mobility.initialY" : "650m" },
+            { "**.loRaGW[3].mobility.initialX" : "650m" },
+            { "**.loRaGW[3].mobility.initialY" : "650m" },
+            { "**.loRaGW[4].mobility.initialX" : "500m" },
+            { "**.loRaGW[4].mobility.initialY" : "350m" },
+            { "**.loRaGW[5].mobility.initialX" : "500m" },
+            { "**.loRaGW[5].mobility.initialY" : "650m" },
+            { "**.loRaGW[6].mobility.initialX" : "350m" },
+            { "**.loRaGW[6].mobility.initialY" : "500m" },
+            { "**.loRaGW[7].mobility.initialX" : "650m" },
+            { "**.loRaGW[7].mobility.initialY" : "500m" },
+            { "output-scalar-file" : "../results/test_scenario-gw8-max-s0.ini.sca" },
+            { "**.loRaNodes[0].**.initialX" : "756.75m" },
+            { "**.loRaNodes[0].**.initialY" : "475.93m" },
+            { "**.loRaNodes[0].**initialLoRaSF" : "12" },
+            { "**.loRaNodes[0].**initialLoRaTP" : "14dBm" }
+        ],
+        "scalars" : [
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "positionX",
+                "value" : 756.75
+            },
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "positionY",
+                "value" : 475.93
+            },
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "finalTP",
+                "value" : 2
+            },
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "finalSF",
+                "value" : 8
+            },
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "sentPackets",
+                "value" : 5000
+            },
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "receivedADRCommands",
+                "value" : 30
+            },
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "LoRa_AppPacketSent:count",
+                "value" : 5000,
+                "attributes" : {
+                    "recordingmode" : "count",
+                    "source" : "LoRa_AppPacketSent"
+                }
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "LoRa_NS_DER",
+                "value" : 0.1094
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "Send ADR for node",
+                "value" : 30
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "numReceivedFromNode 0",
+                "value" : 547
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "totalReceivedPackets",
+                "value" : 672
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "counterUniqueReceivedPacketsPerSF SF7",
+                "value" : 0
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "counterUniqueReceivedPacketsPerSF SF8",
+                "value" : 24
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "counterUniqueReceivedPacketsPerSF SF9",
+                "value" : 310
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "counterUniqueReceivedPacketsPerSF SF10",
+                "value" : 193
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "counterUniqueReceivedPacketsPerSF SF11",
+                "value" : 0
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "counterUniqueReceivedPacketsPerSF SF12",
+                "value" : 20
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "DER SF7",
+                "value" : 0
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "DER SF8",
+                "value" : 0.019323671497585
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "DER SF9",
+                "value" : 0.11854684512428
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "DER SF10",
+                "value" : 0.42139737991266
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "DER SF11",
+                "value" : 0
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "DER SF12",
+                "value" : 1
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "LoRa_ServerPacketReceived:count",
+                "value" : 547,
+                "attributes" : {
+                    "recordingmode" : "count",
+                    "source" : "LoRa_ServerPacketReceived"
+                }
+            }
+        ],
+        "parameters" : [
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "typename",
+                "value" : "\"flora.LoRaApp.SimpleLoRaApp\""
+            },
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "numberOfPacketsToSend",
+                "value" : "5000"
+            },
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "timeToFirstPacket",
+                "value" : "uniform(0s, 144s)",
+                "attributes" : {
+                    "unit" : "s"
+                }
+            },
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "timeToNextPacket",
+                "value" : "exponential(144s)",
+                "attributes" : {
+                    "unit" : "s"
+                }
+            },
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "initialLoRaTP",
+                "value" : "14dBm",
+                "attributes" : {
+                    "unit" : "dBm"
+                }
+            },
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "initialLoRaCF",
+                "value" : "8.68e+08Hz",
+                "attributes" : {
+                    "unit" : "Hz"
+                }
+            },
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "initialLoRaSF",
+                "value" : "12"
+            },
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "initialLoRaBW",
+                "value" : "125000Hz",
+                "attributes" : {
+                    "unit" : "Hz"
+                }
+            },
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "initialLoRaCR",
+                "value" : "4"
+            },
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "initialUseHeader",
+                "value" : "true"
+            },
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "evaluateADRinNode",
+                "value" : "true"
+            },
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "dataSize",
+                "value" : "10B",
+                "attributes" : {
+                    "unit" : "B"
+                }
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "typename",
+                "value" : "\"flora.LoRa.NetworkServerApp\""
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "localPort",
+                "value" : "1000"
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "localAddress",
+                "value" : "\"\""
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "destPort",
+                "value" : "2000"
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "evaluateADRinServer",
+                "value" : "true"
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "headerLength",
+                "value" : "8B",
+                "attributes" : {
+                    "unit" : "B"
+                }
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "adrMethod",
+                "value" : "\"max\""
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "adrDeviceMargin",
+                "value" : "15"
+            }
+        ],
+        "histograms" : [
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "receivedRSSI",
+                "count" : 547,
+                "mean" : -128.83376011352,
+                "stddev" : 2.6676398150621,
+                "min" : -132.99263453947,
+                "max" : -116.88715944192,
+                "sum" : -70472.066782095,
+                "sqrsum" : 9083066.8475002,
+                "underflows" : 0,
+                "overflows" : 0,
+                "binedges" : [-137, -136.5, -136, -135.5, -135, -134.5, -134, -133.5, -133, -132.5, 
+                    -132, -131.5, -131, -130.5, -130, -129.5, -129, -128.5, -128, -127.5, 
+                    -127, -126.5, -126, -125.5, -125, -124.5, -124, -123.5, -123, -122.5, 
+                    -122, -121.5, -121, -120.5, -120, -119.5, -119, -118.5, -118, -117.5, 
+                    -117, -116.5, -116, -115.5, -115, -114.5, -114, -113.5, -113, -112.5],
+                "binvalues" : [0, 0, 0, 0, 0, 0, 0, 0, 42, 25, 
+                    26, 15, 20, 14, 77, 66, 62, 38, 37, 22, 
+                    22, 14, 19, 8, 8, 7, 8, 1, 2, 2, 
+                    0, 0, 1, 2, 2, 1, 1, 2, 1, 1, 
+                    1, 0, 0, 0, 0, 0, 0, 0, 0]
+            }
+        ],
+        "vectors" : [
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "SF Vector",
+                "time" : [],
+                "value" : []
+            },
+            {
+                "module" : "LoRaNetworkTest.loRaNodes[0].app[0]",
+                "name" : "TP Vector",
+                "time" : [],
+                "value" : []
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "Vector of SNIR per node",
+                "time" : [],
+                "value" : []
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "Vector of RSSI per node",
+                "time" : [],
+                "value" : []
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "Received Sequence number",
+                "time" : [],
+                "value" : []
+            },
+            {
+                "module" : "LoRaNetworkTest.networkServer.app[0]",
+                "name" : "Calculated SNRmargin in ADR",
+                "time" : [],
+                "value" : []
+            }
+        ]
+    }
+}

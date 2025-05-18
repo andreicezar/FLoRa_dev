@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import re
 import shutil
+import sys
+import numpy as np
 from collections import defaultdict
 from matplotlib.colors import to_hex
 
@@ -140,7 +142,8 @@ class LoRaMetricExtractor:
                 self.data_error_rate_per_node.append({"node_id": node_id, "data_error_rate": round(1 - der, 4), "sent": sent, "received": received})
 
     def save_report(self):
-        report_path = os.path.join(self.output_path, "report.txt")
+        report_filename = f"report_{self.prefix}.txt" if self.prefix else "report.txt"
+        report_path = os.path.join(self.output_path, report_filename)
         with open(report_path, "w", encoding="utf-8") as f:
             f.write("\n".join(self.report_lines))
         print(f"📄 Report saved to: {report_path}")
@@ -185,33 +188,41 @@ class LoRaMetricExtractor:
             ids = [id_func(i, vec["module"]) for i, vec in enumerate(vectors)]
             unique_ids = sorted(set(ids))
 
-            cmap = plt.get_cmap('hsv')
-            color_map = {nid: cmap(i / len(unique_ids)) for i, nid in enumerate(unique_ids)}
+            # ✅ Use consistent node colors with tab20 colormap
+            cmap = plt.get_cmap('tab20')
+            color_map = {nid: cmap(i % 20) for i, nid in enumerate(unique_ids)}
 
-            plt.figure(figsize=(12, 7))
-
+            # Special case: SNIR from server single combined vector
             if label == 'SNIR' and len(vectors) == 1 and 'networkserverapp' in vectors[0]['module'].lower():
                 snir_per_node = self.split_vector_by_node(vectors[0], num_nodes=10)
-                plt.figure()
+                fig, ax = plt.subplots(figsize=(12, 7))
                 for node_id, values in snir_per_node.items():
-                    plt.hist(values, bins=30, alpha=0.6, label=f"Node {node_id}")
-                plt.title("SNIR Histogram per Node (from combined vector)")
-                plt.xlabel("SNIR (dB)")
-                plt.ylabel("Frequency")
-                plt.legend()
-                plt.grid(True)
-                plt.savefig(os.path.join(self.output_path, "SNIR_histogram_split_by_node.png"))
-                plt.close()
+                    ax.hist(values, bins=30, alpha=0.6, label=f"Node {node_id}")
+                ax.set_title("SNIR Histogram per Node (from combined vector)")
+                ax.set_xlabel("SNIR (dB)")
+                ax.set_ylabel("Frequency")
+                ax.legend()
+                ax.grid(True)
+                fig.tight_layout()
+                fig.savefig(os.path.join(self.output_path, "SNIR_histogram_split_by_node.png"))
+                plt.close(fig)
                 return
 
+            fig, ax = plt.subplots(figsize=(12, 7))
             histogram_data = []
             label_added = False
+
             for i, vec in enumerate(vectors):
                 values = vec.get("value", [])
                 nid = id_func(i, vec["module"])
+                color = color_map.get(nid, "gray")
+
                 if isinstance(values, list) and values:
-                    counts, bins, _ = plt.hist(values, bins=20, alpha=0.6, label=str(nid), color=color_map.get(nid, None))
-                    histogram_data.extend((x, y) for x, y in zip(bins, counts))
+                    if (label == 'RSSI') or (label == 'SNIR'):
+                        ax.plot(values, label=f"Node {nid}", color=color, alpha=0.8)
+                    else:
+                        counts, bins, _ = ax.hist(values, bins=20, alpha=0.6, label=f"Node {nid}", color=color)
+                        histogram_data.extend((x, y) for x, y in zip(bins, counts))
                     label_added = True
 
             histogram_data = sorted(histogram_data, key=lambda t: t[1])
@@ -221,19 +232,23 @@ class LoRaMetricExtractor:
                 if key in seen or y == 0:
                     continue
                 seen.add(key)
-                plt.text(x, y, f"{int(y)}", fontsize=7, rotation=0, ha='center', va='bottom')
+                ax.text(x, y, f"{int(y)}", fontsize=7, rotation=0, ha='center', va='bottom')
 
-            plt.title(f"{label} Histogram per Node")
-            plt.xlabel("Frequency")
-            plt.ylabel(label)
+            ax.set_title(f"{label} per Node ({'Linear' if (label == 'RSSI') or (label == 'SNIR') else 'Histogram'})")
+            ax.set_xlabel(label)
+            ax.set_ylabel("Frequency" if 'Histogram' in ax.get_title() else "Value")
+            ax.grid(True)
+
             if label_added:
-                plt.legend(fontsize='small', loc='best')
+                ax.legend(fontsize='small', loc='best')
             else:
                 self.report_lines.append(f"⚠️ No labels added for legend in {label} plot.")
-            plt.grid(True)
-            fname = f"{label.replace(' ', '_')}_histogram_all_nodes.png"
-            plt.savefig(os.path.join(self.output_path, fname))
-            plt.close()
+
+            fname = f"{self.prefix}_{label.replace(' ', '_')}_{'linear' if (label == 'RSSI') or (label == 'SNIR') else 'histogram'}_all_nodes.png" if self.prefix else f"{label.replace(' ', '_')}_{'linear' if (label == 'RSSI') or (label == 'SNIR') else 'histogram'}_all_nodes.png"
+            fig.tight_layout()
+            fig.savefig(os.path.join(self.output_path, fname))
+
+            plt.close(fig)
             print(f"✅ Saved plot: {fname}")
 
     def calculate_toa_per_node(self, payload_size=15, bw=125000, cr=1, preamble=8, header_enabled=True):
@@ -539,7 +554,9 @@ class LoRaMetricExtractor:
             height = bar.get_height()
             plt.text(bar.get_x() + bar.get_width()/2.0, height, f"{der_values[i]:.2f}", ha='center', va='bottom', fontsize=8)
 
-        plot_path = os.path.join(self.output_path, "data_error_rate_per_node.png")
+        plot_name = f"{self.prefix}_data_error_rate_per_node.png" if self.prefix else "data_error_rate_per_node.png"
+        plot_path = os.path.join(self.output_path, plot_name)
+
         plt.savefig(plot_path)
         print(f"✅ DER plot saved to: {plot_path}")
         plt.close()
@@ -598,14 +615,24 @@ if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.abspath(__file__))
     parent_dir = os.path.abspath(os.path.join(base_dir, ".."))  # results_and_analysis
 
-    # Căutăm recursiv în toate subfolderele care conțin "export_json"
+    # === 🔍 Citim argumentele din linia de comandă ===
+    # Exemplu: python script.py export_json_scenario1 export_json_scenario3
+    selected_folders = sys.argv[1:]  # dacă e gol => toate
+
+    # === 🔎 Căutăm toate folderele care conțin "export_json" ===
     scenario_folders = []
     for root, dirs, files in os.walk(parent_dir):
         for d in dirs:
             if d.startswith("export_json"):
-                scenario_folders.append(os.path.join(root, d))
+                full_path = os.path.join(root, d)
+                if not selected_folders or any(sf in d for sf in selected_folders):
+                    scenario_folders.append(full_path)
 
-    print('📂 Listă directoare de scenarii găsite:')
+    if not scenario_folders:
+        print("⚠️ Niciun director de scenariu nu a fost găsit.")
+        sys.exit(0)
+
+    print('📂 Listă directoare de scenarii selectate:')
     for folder in scenario_folders:
         print(f'📁 {folder}')
 
@@ -616,7 +643,7 @@ if __name__ == "__main__":
             print(f"🧹 Ștergere folder: {plots_folder}")
             shutil.rmtree(plots_folder)
 
-    # 📈 Rulează analiza pentru fiecare scenariu/prefix
+    # 📈 Rulează analiza pentru fiecare scenariu
     for folder in scenario_folders:
         for prefix_file in glob.glob(os.path.join(folder, "*_app.json")):
             prefix = os.path.basename(prefix_file).replace("_app.json", "")

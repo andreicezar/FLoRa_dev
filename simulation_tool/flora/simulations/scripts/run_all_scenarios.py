@@ -11,7 +11,7 @@ import numpy as np
 from html_dashboard_helper import generate_html_dashboard
 # === 🔧 GLOBAL CONFIGURATION ===
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-EXPORT_JSON_DIR = os.path.join(BASE_DIR, "..", "export_json")
+EXPORT_JSON_DIR = os.path.join(BASE_DIR, "..", "export_json_adr_margin_15_different_init")
 OUTPUT_PLOT_DIR = os.path.join(BASE_DIR, "plots")
 REQUIRED_SUFFIXES = ["app", "scalars", "parameters", "histograms"]
 

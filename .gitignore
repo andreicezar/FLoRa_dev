@@ -49,8 +49,3 @@ simulations/**/log.txt
 # ⚙️ Git LFS fallback (optional)
 # =======================================
 *.lfs
-
-# =======================================
-# 📝 Ignore JSON files (simulation data)
-# =======================================
-*.json

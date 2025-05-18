@@ -1638,7 +1638,49 @@ class LoRaSimulationAnalyzer:
         self._export_plot("collision_count_per_node.jpeg")
         plt.close()
 
+    def compute_convergence_time_per_node(self):
+        """
+        Returns a list of (node_id, convergence_time_sec) tuples.
+        Convergence is defined as the last time the SF changed.
+        """
+        convergence_times = []
+        for vec in self.sf_vectors:
+            module = vec.get("module", "")
+            node_id = self._extract_node_or_gateway_number(module, self.NODE_PREFIX)
+            if node_id is None:
+                continue
+
+            time_series = vec.get("time", [])
+            value_series = vec.get("value", [])
+
+            if not time_series or not value_series:
+                continue
+
+            last_change_time = None
+            last_val = value_series[0]
+
+            for t, v in zip(time_series, value_series):
+                if v != last_val:
+                    last_change_time = t
+                    last_val = v
+
+            if last_change_time is None:
+                # Never changed — assume converged from beginning
+                last_change_time = 0
+
+            convergence_times.append((node_id, last_change_time))
+
+        return convergence_times
+
+
     def plot_convergence_time_per_node(self):
+        print("Plotting Convergence Time per Node...")
+        times = self.compute_convergence_time_per_node()
+
+        if not times:
+            print("⚠️ No convergence time data found for any node.")
+            return
+
         sf_vectors = {v['module']: v['value'] for v in self.sf_vectors if 'value' in v}
         times = []
         for module, values in sf_vectors.items():
