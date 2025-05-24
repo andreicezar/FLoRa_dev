@@ -1,4 +1,3 @@
-⚠️ Run ID mismatch: app='General-0-20250517-00:33:37-10144' vs scalars='General-0-20250519-23:50:31-17748'. Trying to use scalar run id.
 
 🎯 SF VECTORS:
 LoRaNetworkTest.loRaNodes[0].app[0]: [12, 12, 12, 12, 12]

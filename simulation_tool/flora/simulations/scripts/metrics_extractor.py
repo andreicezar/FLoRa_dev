@@ -122,7 +122,7 @@ class LoRaMetricExtractor:
                     gw_id = int(gw_match.group(1))
                     self.packets_received_per_gateway[gw_id] = int(value)
 
-        # Compute DER / PDR / PER per node
+        # Compute DER / PDR / PER per node 
         for node_id in sorted(k for k in self.scalar_dict if isinstance(k, int)):
             vals = self.scalar_dict[node_id]
             sent = received = None
@@ -133,13 +133,29 @@ class LoRaMetricExtractor:
                         sent = v
                     elif k == "received":
                         received = v
-            if sent is not None and received is not None:
-                per = (sent - received) / sent if sent > 0 else 0
-                pdr = received / sent if sent > 0 else 0
-                der = pdr
-                self.packet_error_rate_per_node.append({"node_id": node_id, "per": round(per, 4), "sent": sent, "received": received})
-                self.packet_delivery_ratio_per_node.append({"node_id": node_id, "pdr": round(pdr, 4), "sent": sent, "received": received})
-                self.data_error_rate_per_node.append({"node_id": node_id, "data_error_rate": round(1 - der, 4), "sent": sent, "received": received})
+            if sent is not None and received is not None and sent > 0:
+                # PER și DER sunt identice dacă PER-ul este calculat pe toată sesiunea, nu pe fereastră glisantă!
+                per = (sent - received) / sent
+                pdr = received / sent
+                der = (sent - received) / sent  # Asta e Data Error Rate corectă!
+                self.packet_error_rate_per_node.append({
+                    "node_id": node_id,
+                    "per": round(per, 4),
+                    "sent": sent,
+                    "received": received
+                })
+                self.packet_delivery_ratio_per_node.append({
+                    "node_id": node_id,
+                    "pdr": round(pdr, 4),
+                    "sent": sent,
+                    "received": received
+                })
+                self.data_error_rate_per_node.append({
+                    "node_id": node_id,
+                    "data_error_rate": round(der, 4),  # NU 1-pdr!
+                    "sent": sent,
+                    "received": received
+                })
 
     def save_report(self):
         report_filename = f"report_{self.prefix}.txt" if self.prefix else "report.txt"
@@ -321,16 +337,16 @@ class LoRaMetricExtractor:
 
         # DER, PER, PDR SUMMARY PER NODE
         self.report_lines.append("\n📊 NODE METRICS SUMMARY (DER, PER, PDR):")
-        self.report_lines.append("Node  Sent   Recv   PDR      PER      DER     ")
+        self.report_lines.append("Node  Sent   Recv   DER      PER      PDR     ")
         self.report_lines.append("----------------------------------------------")
         for node in sorted(self.data_error_rate_per_node, key=lambda x: x["node_id"]):
             node_id = node["node_id"]
             sent = node["sent"]
             recv = node["received"]
-            pdr = next((x["pdr"] for x in self.packet_delivery_ratio_per_node if x["node_id"] == node_id), 0)
+            der = node["data_error_rate"]  # <- Acum e corect!
             per = next((x["per"] for x in self.packet_error_rate_per_node if x["node_id"] == node_id), 0)
-            der = node["data_error_rate"]
-            self.report_lines.append(f"{node_id:<5} {sent:<6} {recv:<6} {pdr:<8.4f} {per:<8.4f} {der:<8.4f}")
+            pdr = next((x["pdr"] for x in self.packet_delivery_ratio_per_node if x["node_id"] == node_id), 0)
+            self.report_lines.append(f"{node_id:<5} {sent:<6} {recv:<6} {der:<8.4f} {per:<8.4f} {pdr:<8.4f}")
 
         # FINAL SF / TP
         self.report_lines.append("\n📶 FINAL SPREADING FACTOR (SF) PER NODE:")
@@ -437,32 +453,32 @@ class LoRaMetricExtractor:
         match = re.search(rf"{prefix}\\[(\\d+)\\]", module)
         return int(match.group(1)) if match else None
 
-    def calculate_data_error_rate(self):
+    def calculate_data_error_rate(self, num_nodes=None):
         results = []
         received = {
             int(name.split(" ")[-1]): entries[0]["value"]
             for name, entries in self.scalar_dict.items()
             if isinstance(name, str) and name.startswith("numReceivedFromNode ")
         }
-
         sent_entries = self.scalar_dict.get("sentPackets", [])
-        if not sent_entries:
-            print("❗️Missing 'sentPackets' data in scalar_dict.")
-        if not received:
-            print("❗️Missing 'numReceivedFromNode X' data in scalar_dict.")
+        sent_dict = {int(e["module"].split("[")[-1].split("]")[0]): e["value"] for e in sent_entries}
 
-        for nid in received:
-            recv = received[nid]
-            sent_entry = next((e for e in sent_entries if str(nid) in e["module"]), None)
-            if sent_entry is None:
-                print(f"⚠️ Node {nid}: No matching sentPackets entry found.")
-                continue
-            sent = sent_entry["value"]
+        all_node_ids = set(received) | set(sent_dict)
+        if num_nodes is not None:
+            all_node_ids = set(range(num_nodes))
+        for nid in sorted(all_node_ids):
+            sent = sent_dict.get(nid, 0)
+            recv = received.get(nid, 0)
             if sent == 0:
-                print(f"⚠️ Node {nid}: Sent = 0, skipping.")
-                continue
-            der = (sent - recv) / sent
-            results.append({"node_id": nid, "sent": sent, "received": recv, "data_error_rate": der})
+                der = 0.0
+            else:
+                der = (sent - recv) / sent
+            results.append({
+                "node_id": nid,
+                "sent": sent,
+                "received": recv,
+                "data_error_rate": round(der, 4)
+            })
         return results
 
     def calculate_pdr(self):
@@ -525,39 +541,45 @@ class LoRaMetricExtractor:
         return result
     
     def plot_data_error_rate(self):
-        raw_data = self.calculate_data_error_rate()
-
+        # Use the already calculated data_error_rate_per_node instead of calling calculate_data_error_rate()
+        raw_data = self.data_error_rate_per_node  # <-- CHANGED THIS LINE
+        
         if not raw_data:
             print("⚠️ No data to plot for DER. Skipping plot generation.")
             return
 
-        # Construim un dicționar complet cu toți nodurile de la 0 la 9
-        max_node_id = 9
-        der_dict = {entry["node_id"]: entry["data_error_rate"] for entry in raw_data}
-        data_complete = [{"node_id": i, "data_error_rate": der_dict.get(i, 0.0)} for i in range(max_node_id + 1)]
-
-        node_ids = [entry["node_id"] for entry in data_complete]
-        der_values = [entry["data_error_rate"] for entry in data_complete]
-        labels = [str(nid) for nid in node_ids]
-
-        x_pos = range(len(node_ids))
-
-        plt.figure(figsize=(10, 5))  # opțional, să ai mai mult spațiu între bare
-        bars = plt.bar(x_pos, der_values, color=cm.tab20.colors[:len(node_ids)])
-        plt.xticks(x_pos, labels)
-        plt.title("Data Error Rate per Node")
+        # Sort by node_id for consistent ordering
+        raw_data_sorted = sorted(raw_data, key=lambda x: x["node_id"])
+        
+        node_ids = [entry["node_id"] for entry in raw_data_sorted]
+        der_values = [entry["data_error_rate"] for entry in raw_data_sorted]
+        
+        # Create figure with better sizing
+        plt.figure(figsize=(12, 6))
+        
+        # Use consistent colors
+        colors = plt.cm.tab20(np.linspace(0, 1, len(node_ids)))
+        
+        bars = plt.bar(node_ids, der_values, color=colors[:len(node_ids)])
+        
         plt.xlabel("Node ID")
-        plt.ylabel("Data Error Rate")
-        plt.grid(True, axis='y')
-
-        for i, bar in enumerate(bars):
-            height = bar.get_height()
-            plt.text(bar.get_x() + bar.get_width()/2.0, height, f"{der_values[i]:.2f}", ha='center', va='bottom', fontsize=8)
-
+        plt.ylabel("Data Error Rate (DER)")
+        plt.title("Data Error Rate (DER) per Node")
+        plt.grid(True, axis='y', alpha=0.3)
+        
+        # Add value labels on bars
+        for i, (node_id, der) in enumerate(zip(node_ids, der_values)):
+            plt.text(node_id, der + 0.002, f"{der:.4f}", 
+                    ha='center', va='bottom', fontsize=9)
+        
+        # Set y-axis to show full range
+        plt.ylim(0, max(der_values) * 1.2 if der_values else 0.1)
+        
         plot_name = f"{self.prefix}_data_error_rate_per_node.png" if self.prefix else "data_error_rate_per_node.png"
         plot_path = os.path.join(self.output_path, plot_name)
-
-        plt.savefig(plot_path)
+        
+        plt.tight_layout()
+        plt.savefig(plot_path, dpi=150)
         print(f"✅ DER plot saved to: {plot_path}")
         plt.close()
 

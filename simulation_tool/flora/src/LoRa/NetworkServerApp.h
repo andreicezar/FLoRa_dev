@@ -36,17 +36,19 @@ class knownNode
 {
 public:
     MacAddress srcAddr;
-    int framesFromLastADRCommand;
-    int lastSeqNoProcessed;
-    int numberOfSentADRPackets;
-    // std::list<double> adrListSNIR;
-    std::list<std::pair<int, double>> adrListSNIR;  // <gateway ID, SNIR>
-    cOutVector *historyAllSNIR;
-    cOutVector *historyAllRSSI;
-    cOutVector *receivedSeqNumber;
-    cOutVector *calculatedSNRmargin;
-    int lastNbTrans = 1;  // ✔️ Start with 1 by default
-
+    int framesFromLastADRCommand = 0;
+    int lastSeqNoProcessed = 0;
+    int firstSeqNoProcessed = 0;
+    int numberOfSentADRPackets = 0;
+    int currentNbTrans = 1;  // <-- ADD THIS: Track current NbTrans setting
+    std::list<double> adrListSNIR;
+    cOutVector *historyAllSNIR = nullptr;
+    cOutVector *historyAllRSSI = nullptr;
+    cOutVector *receivedSeqNumber = nullptr;
+    cOutVector *calculatedSNRmargin = nullptr;
+    std::map<L3Address, std::list<double>> gwAdrListSNIR;
+    std::map<L3Address, cOutVector*> gwHistorySNIR;
+    std::list<int> seqNumWindow; // size capped at 20
 };
 
 class knownGW
@@ -94,14 +96,16 @@ class NetworkServerApp : public cSimpleModule, cListener
     void evaluateADR(Packet *pkt, L3Address pickedGateway, double SNIRinGW, double RSSIinGW);
     void receiveSignal(cComponent *source, simsignal_t signalID, intval_t value, cObject *details) override;
     bool evaluateADRinServer;
-    double getMaxSNR(const knownNode& node, int gwId);
-    std::vector<int> getReceptionGateways(const knownNode& node);
-    double inverseCDFexp(double p);
-    int getGatewayIndexByAddress(const L3Address& addr);
-    double getCurrentPER(const knownNode& node);
-    double computeTimeOnAir(int sf, int nbTrans);
 
     cHistogram receivedRSSI;
+    
+    double calculateCurrentPER(const knownNode& node);
+    double estimateSNR_d(const knownNode& node, int seqNo);
+    double calculateFER(int SF, double SNR_d);
+    std::tuple<int, int, int> chooseBestConfiguration(const std::map<std::tuple<int, int, int>, double>& PERpredic, double PERtarget, int payloadSize);
+    double calculateTimeOnAir(int SF, int payloadBytes);
+    double estimateGWSNR_d(const knownNode& node, const L3Address& gwAddress, double currentSNIR, double sizeS);
+
   public:
     simsignal_t LoRa_ServerPacketReceived;
     int counterOfSentPacketsFromNodes = 0;
