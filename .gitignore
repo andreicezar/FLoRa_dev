@@ -49,3 +49,5 @@ simulations/**/log.txt
 # ⚙️ Git LFS fallback (optional)
 # =======================================
 *.lfs
+simulation_tool/flora/simulations/config_files_for_scenarios/adr_margin_packet_size_tests/debug_adr_opt_log.txt
+debug_adr_opt_log.txt
