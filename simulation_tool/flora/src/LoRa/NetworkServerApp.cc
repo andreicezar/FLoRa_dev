@@ -30,7 +30,7 @@
 
 #include <fstream>
 
-std::ofstream debugLogFile("debug_adr_opt_log.txt");
+std::ofstream debugLogFile;
 
 namespace flora {
 
@@ -39,7 +39,15 @@ Define_Module(NetworkServerApp);
 void NetworkServerApp::initialize(int stage)
 {
     if (stage == 0) {
-        debugLogFile << "ADRopt Log started." << std::endl;
+        // ===== NEW: Debug control parameter =====
+        debugADR = par("debugADR").boolValue();
+        
+        // Only open debug file if debugging is enabled
+        if (debugADR) {
+            debugLogFile.open("debug_adr_opt_log.txt");
+            debugLogFile << "ADRopt Log started." << std::endl;
+        }
+
         ASSERT(recvdPackets.size()==0);
         LoRa_ServerPacketReceived = registerSignal("LoRa_ServerPacketReceived");
         localPort = par("localPort");
@@ -61,6 +69,13 @@ void NetworkServerApp::initialize(int stage)
     }
 }
 
+// ===== NEW: Debug logging macro =====
+#define DEBUG_LOG(message) \
+    do { \
+        if (debugADR && debugLogFile.is_open()) { \
+            debugLogFile << message << std::endl; \
+        } \
+    } while(0)
 
 void NetworkServerApp::startUDP()
 {
@@ -170,8 +185,11 @@ void NetworkServerApp::finish()
         recordScalar("DER SF12", double(counterUniqueReceivedPacketsPerSF[5]) / counterOfSentPacketsFromNodesPerSF[5]);
     else
         recordScalar("DER SF12", 0);
-    
-    debugLogFile.close();
+
+    // ===== UPDATED: Close debug file only if it was opened =====
+    if (debugADR && debugLogFile.is_open()) {
+        debugLogFile.close();
+    }
 }
 
 bool NetworkServerApp::isPacketProcessed(const Ptr<const LoRaMacFrame> &pkt)
@@ -186,13 +204,14 @@ bool NetworkServerApp::isPacketProcessed(const Ptr<const LoRaMacFrame> &pkt)
 
 void NetworkServerApp::updateKnownNodes(Packet* pkt)
 {
-    std::string blockName = "updateKnownNodes (seq=" + 
-        std::to_string(pkt->peekAtFront<LoRaMacFrame>()->getSequenceNumber()) + 
-        ", srcAddr=" + pkt->peekAtFront<LoRaMacFrame>()->getTransmitterAddress().str() + ")";
-    debugLogFile << "\n===== [DEBUG START] " << blockName << " =====" << std::endl;
-
     const auto & frame = pkt->peekAtFront<LoRaMacFrame>();
     bool nodeExist = false;
+
+
+    // ===== UPDATED: Use debug macro with proper stream syntax =====
+    DEBUG_LOG("\n===== [DEBUG START] updateKnownNodes (seq=" << frame->getSequenceNumber()
+              << ", srcAddr=" << frame->getTransmitterAddress() << ") =====");
+
     for(auto &elem : knownNodes)
     {
         if(elem.srcAddr == frame->getTransmitterAddress()) {
@@ -238,12 +257,13 @@ void NetworkServerApp::updateKnownNodes(Packet* pkt)
         
         knownNodes.push_back(newNode);
 
-        debugLogFile << "[INFO] Created new knownNode for " << frame->getTransmitterAddress()
-            << " (first seq=" << frame->getSequenceNumber() << ")" << std::endl;
-        debugLogFile << "[INFO] Created GW SNIR buffer for GW " << gwAddress
-            << " for node " << frame->getTransmitterAddress() << std::endl;
-        debugLogFile << "[DATA] SNIR window for GW " << gwAddress << " size=1" << std::endl;
-        debugLogFile << "[DATA] SeqNum window size=1: " << frame->getSequenceNumber() << std::endl;
+        DEBUG_LOG("[INFO] Created new knownNode for " << frame->getTransmitterAddress()
+            << " (first seq=" << frame->getSequenceNumber() << ")");
+        DEBUG_LOG("[INFO] Created GW SNIR buffer for GW " << gwAddress
+            << " for node " << frame->getTransmitterAddress());
+        DEBUG_LOG("[DATA] SNIR window for GW " << gwAddress << " size=1");
+        DEBUG_LOG("[DATA] SeqNum window size=1: " << frame->getSequenceNumber());
+
 
     } else {
         for(auto &node : knownNodes) {
@@ -260,8 +280,8 @@ void NetworkServerApp::updateKnownNodes(Packet* pkt)
                     node.gwAdrListSNIR[gwAddress] = std::list<double>();
                     node.gwHistorySNIR[gwAddress] = new cOutVector;
                     node.gwHistorySNIR[gwAddress]->setName(("SNIR from GW " + gwAddress.str()).c_str());
-                    debugLogFile << "[INFO] Created GW SNIR buffer for NEW GW " << gwAddress
-                        << " for node " << frame->getTransmitterAddress() << std::endl;
+                    DEBUG_LOG("[INFO] Created GW SNIR buffer for NEW GW " << gwAddress
+                        << " for node " << frame->getTransmitterAddress());
                 }
                 
                 node.gwAdrListSNIR[gwAddress].push_back(frame->getSNIR());
@@ -270,13 +290,14 @@ void NetworkServerApp::updateKnownNodes(Packet* pkt)
 
                 node.gwHistorySNIR[gwAddress]->record(frame->getSNIR());
 
-                debugLogFile << "[DATA] SNIR window for GW " << gwAddress << " now has size="
-                    << node.gwAdrListSNIR[gwAddress].size() << std::endl;
+                
+                DEBUG_LOG("[DATA] SNIR window for GW " << gwAddress << " now has size="
+                    << node.gwAdrListSNIR[gwAddress].size());
                 break;
             }
         }
     }
-    debugLogFile << "===== [DEBUG END] " << blockName << " =====\n" << std::endl;
+    DEBUG_LOG("===== [DEBUG END] " << " =====\n");
 }
 
 
@@ -391,7 +412,7 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
     std::string blockName = "evaluateADR (srcAddr=" + 
         pkt->peekAtFront<LoRaMacFrame>()->getTransmitterAddress().str() +
         ", seq=" + std::to_string(pkt->peekAtFront<LoRaMacFrame>()->getSequenceNumber()) + ")";
-    debugLogFile << "\n===== [DEBUG START] " << blockName << " =====" << std::endl;
+    DEBUG_LOG("\n===== [DEBUG START] " << blockName << " =====");
 
     bool sendADR = false;
     bool sendADRAckRep = false;
@@ -408,7 +429,7 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
     // Extract actual payload size
     const auto & appPacket = pkt->peekAtFront<LoRaAppPacket>();
     int payloadSize = B(appPacket->getChunkLength()).get();
-    if (payloadSize == 0) payloadSize = 15; // Default fallback
+    if (payloadSize == 0) payloadSize = 20; // Default fallback
 
     if(appPacket->getOptions().getADRACKReq())
         sendADRAckRep = true;
@@ -430,8 +451,8 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
             // Check if we need to send an ADR command
             if(knownNodes[i].framesFromLastADRCommand == 20 || sendADRAckRep == true)
             {
-                debugLogFile << "\n===== [DEBUG ADR DECISION SET START] for node: " 
-                    << knownNodes[i].srcAddr << " =====" << std::endl;
+                DEBUG_LOG("\n===== [DEBUG ADR DECISION SET START] for node: " 
+                    << knownNodes[i].srcAddr << " =====");
 
                 nodeIndex = i;
                 knownNodes[i].framesFromLastADRCommand = 0;
@@ -451,9 +472,9 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
                 double currentTPdBm = math::mW2dBmW(frame->getLoRaTP());
                 double sizeS_base = 20.0 / (1.0 - PERcurrent);
 
-                debugLogFile << "[DATA] PERcurrent = " << PERcurrent 
+                DEBUG_LOG("[DATA] PERcurrent = " << PERcurrent 
                             << ", PERmax = " << PERmax
-                            << ", PERtarget = " << PERtarget << std::endl;
+                            << ", PERtarget = " << PERtarget);
 
                 // Test all SF and NbTrans combinations
                 for (int SF = 7; SF <= 12; SF++) {
@@ -461,8 +482,8 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
                         double productPER = 1.0;
                         double sizeS = sizeS_base * NbTrans;
                         
-                        debugLogFile << "[CHECK] (SF=" << SF << ", TPdBm=" << TPdBm 
-                                    << ", NbTrans=" << NbTrans << "):" << std::endl;
+                        DEBUG_LOG("[CHECK] (SF=" << SF << ", TPdBm=" << TPdBm 
+                                    << ", NbTrans=" << NbTrans << "):");
                         
                         // Calculate PER across all gateways
                         for (const auto& [gwAddress, snirList] : knownNodes[i].gwAdrListSNIR) {
@@ -477,16 +498,16 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
 
                             productPER *= gwPER;
 
-                            debugLogFile << "   [GW: " << gwAddress
+                            DEBUG_LOG("   [GW: " << gwAddress
                                 << "] gwSNIR=" << gwSNIR
                                 << ", deltaTP=" << deltaTP
                                 << ", adjSNIR=" << adjustedSNIR
                                 << ", SNR_d=" << gwSNR_d
                                 << ", FER=" << gwFER
-                                << ", PER=" << gwPER << std::endl;
+                                << ", PER=" << gwPER);
                         }
                         
-                        debugLogFile << "   [RESULT] productPER = " << productPER << std::endl;
+                        DEBUG_LOG("   [RESULT] productPER = " << productPER);
                         PERpredic[std::make_tuple(SF, TPdBm, NbTrans)] = productPER;
                     }
                 }
@@ -499,10 +520,10 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
                 // Update the node's current NbTrans
                 knownNodes[nodeIndex].currentNbTrans = bestNbTrans;
 
-                debugLogFile << "[RESULT] Selected Config: SF=" << bestSF
+                DEBUG_LOG("[RESULT] Selected Config: SF=" << bestSF
                     << ", TPdBm=" << bestTP
-                    << ", NbTrans=" << bestNbTrans << std::endl;
-                debugLogFile << "===== [DEBUG ADR DECISION SET END] =====" << std::endl;
+                    << ", NbTrans=" << bestNbTrans);
+                DEBUG_LOG("===== [DEBUG ADR DECISION SET END] =====");
 
                 break;
             }
@@ -545,16 +566,16 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
         socket.sendTo(pktAux, pickedGateway, destPort);
     }
 
-    debugLogFile << "===== [DEBUG END] " << blockName << " =====\n" << std::endl;
+    DEBUG_LOG("===== [DEBUG END] " << blockName << " =====\n");
 }
 
 // ===== FIX 3: Fixed calculateCurrentPER function =====
 double NetworkServerApp::calculateCurrentPER(const knownNode& node) {
-    debugLogFile << "\n===== [DEBUG START] calculateCurrentPER =====" << std::endl;
+    DEBUG_LOG("\n===== [DEBUG START] calculateCurrentPER =====");
     
     if (node.seqNumWindow.empty()) {
-        debugLogFile << "[INFO] seqNumWindow is empty, returning PER=0.0" << std::endl;
-        debugLogFile << "===== [DEBUG END] calculateCurrentPER =====\n" << std::endl;
+        DEBUG_LOG("[INFO] seqNumWindow is empty, returning PER=0.0");
+        DEBUG_LOG("===== [DEBUG END] calculateCurrentPER =====\n");
         return 0.0;
     }
     
@@ -568,61 +589,31 @@ double NetworkServerApp::calculateCurrentPER(const knownNode& node) {
     std::set<int> uniqueSeqs(node.seqNumWindow.begin(), node.seqNumWindow.end());
     int numUnique = uniqueSeqs.size();
     
-    debugLogFile << "[DATA] Window seq range: [" << minSeq << ", " << maxSeq 
+    DEBUG_LOG("[DATA] Window seq range: [" << minSeq << ", " << maxSeq 
                  << "], rangeSize=" << rangeSize 
-                 << ", uniqueCount=" << numUnique << std::endl;
+                 << ", uniqueCount=" << numUnique);
     
     if (rangeSize <= 0) {
-        debugLogFile << "[RESULT] rangeSize <= 0, returning PER=0.0" << std::endl;
-        debugLogFile << "===== [DEBUG END] calculateCurrentPER =====\n" << std::endl;
+        DEBUG_LOG("[RESULT] rangeSize <= 0, returning PER=0.0");
+        DEBUG_LOG("===== [DEBUG END] calculateCurrentPER =====\n");
         return 0.0;
     }
     
     // PER based on window range only
     double result = 1.0 - (double)numUnique / rangeSize;
-    debugLogFile << "[RESULT] PER=" << result << std::endl;
-    debugLogFile << "===== [DEBUG END] calculateCurrentPER =====\n" << std::endl;
+    DEBUG_LOG("[RESULT] PER=" << result);
+    DEBUG_LOG("===== [DEBUG END] calculateCurrentPER =====\n");
     return result;
 }
 
-// double NetworkServerApp::estimateSNR_d(const knownNode& node, int seqNo)
-// {
-//     debugLogFile << "\n===== [DEBUG START] estimateSNR_d =====" << std::endl;
-//     if (node.adrListSNIR.empty()) {
-//         debugLogFile << "[INFO] adrListSNIR is empty, returning 0.0" << std::endl;
-//         debugLogFile << "===== [DEBUG END] estimateSNR_d =====\n" << std::endl;
-//         return 0.0;
-//     }
-    
-//     double SNRmax = *max_element(node.adrListSNIR.begin(), node.adrListSNIR.end());
-//     double PERcurrent = calculateCurrentPER(node);
-//     double sizeS = 20 / (1 - PERcurrent);
-
-//     double CDF_exp_high = -log(1 - pow(0.95, 1/sizeS));
-//     double CDF_exp_low = -log(1 - pow(0.05, 1/sizeS));
-//     double SNR_Max_SUMED = (10 * log10(CDF_exp_high) + 10 * log10(CDF_exp_low)) / 2;
-
-//     debugLogFile << "[GOAL] Estimate average SNR using Rayleigh model quantiles." << std::endl;
-//     debugLogFile << "[DATA] SNRmax=" << SNRmax << ", PERcurrent=" << PERcurrent
-//                  << ", sizeS=" << sizeS << ", CDF_exp_high=" << CDF_exp_high
-//                  << ", CDF_exp_low=" << CDF_exp_low
-//                  << ", SNR_Max_SUMED=" << SNR_Max_SUMED << std::endl;
-
-//     double result = SNRmax - SNR_Max_SUMED;
-//     debugLogFile << "[RESULT] SNR_d (SNRmax - SNR_Max_SUMED)=" << result << std::endl;
-//     debugLogFile << "===== [DEBUG END] estimateSNR_d =====\n" << std::endl;
-//     return result;
-// }
-
-
 double NetworkServerApp::calculateFER(int SF, double SNR) {
-    debugLogFile << "\n===== [DEBUG START] calculateFER =====" << std::endl;
+    DEBUG_LOG("\n===== [DEBUG START] calculateFER =====");
     double SNRfloor = -20.0 + ((12 - SF) * 2.5); // LoRa theoretical
     double FER = exp(-pow(10, (SNR - SNRfloor) / 10.0)); // CDFexp
-    debugLogFile << "[GOAL] Calculating FER for SF=" << SF << " and SNR=" << SNR << std::endl;
-    debugLogFile << "[DATA] SNRfloor=" << SNRfloor << ", FER=" << FER << std::endl;
-    debugLogFile << "[RESULT] FER=" << FER << std::endl;
-    debugLogFile << "===== [DEBUG END] calculateFER =====\n" << std::endl;
+    DEBUG_LOG("[GOAL] Calculating FER for SF=" << SF << " and SNR=" << SNR);
+    DEBUG_LOG("[DATA] SNRfloor=" << SNRfloor << ", FER=" << FER);
+    DEBUG_LOG("[RESULT] FER=" << FER);
+    DEBUG_LOG("===== [DEBUG END] calculateFER =====\n");
     return FER;
 }
 
@@ -630,11 +621,11 @@ double NetworkServerApp::calculateFER(int SF, double SNR) {
 std::tuple<int, int, int> NetworkServerApp::chooseBestConfiguration(
     const std::map<std::tuple<int, int, int>, double>& PERpredic, double PERtarget, int payloadSize)
 {
-    debugLogFile << "\n===== [DEBUG START] chooseBestConfiguration =====" << std::endl;
+    DEBUG_LOG("\n===== [DEBUG START] chooseBestConfiguration =====");
     double bestToA = DBL_MAX;
     std::tuple<int, int, int> bestConfig = std::make_tuple(12, 14, 3); // fallback: most robust
 
-    debugLogFile << "[GOAL] Selecting (SF, TP, NbTrans) with lowest ToA, PER <= " << PERtarget << std::endl;
+    DEBUG_LOG("[GOAL] Selecting (SF, TP, NbTrans) with lowest ToA, PER <= " << PERtarget);
 
     // FIXED: Only consider maximum TX power (14 dBm)
     for (int SF = 7; SF <= 12; SF++) {
@@ -644,22 +635,22 @@ std::tuple<int, int, int> NetworkServerApp::chooseBestConfiguration(
             auto it = PERpredic.find(config);
             if (it != PERpredic.end() && it->second <= PERtarget) {
                 double ToA = calculateTimeOnAir(SF, payloadSize) * NbTrans;
-                debugLogFile << "[CHECK] SF=" << SF << ", TPdBm=" << TPdBm << ", NbTrans=" << NbTrans
-                             << ", ToA=" << ToA << ", PER=" << it->second << std::endl;
+                DEBUG_LOG("[CHECK] SF=" << SF << ", TPdBm=" << TPdBm << ", NbTrans=" << NbTrans
+                             << ", ToA=" << ToA << ", PER=" << it->second);
                 if (ToA < bestToA) {
                     bestToA = ToA;
                     bestConfig = config;
-                    debugLogFile << "[INFO] New best config found." << std::endl;
+                    DEBUG_LOG("[INFO] New best config found.");
                 }
             }
         }
     }
     
-    debugLogFile << "[RESULT] Selected Config: SF=" << std::get<0>(bestConfig)
+    DEBUG_LOG("[RESULT] Selected Config: SF=" << std::get<0>(bestConfig)
                  << ", TPdBm=" << std::get<1>(bestConfig)
                  << ", NbTrans=" << std::get<2>(bestConfig)
-                 << " (ToA=" << bestToA << ")" << std::endl;
-    debugLogFile << "===== [DEBUG END] chooseBestConfiguration =====\n" << std::endl;
+                 << " (ToA=" << bestToA << ")");
+    DEBUG_LOG("===== [DEBUG END] chooseBestConfiguration =====\n");
     return bestConfig;
 }
 

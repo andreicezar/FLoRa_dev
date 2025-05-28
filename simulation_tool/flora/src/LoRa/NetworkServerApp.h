@@ -67,6 +67,8 @@ public:
 
 class NetworkServerApp : public cSimpleModule, cListener
 {
+  private:
+    bool debugADR;
   protected:
     std::vector<knownNode> knownNodes;
     std::vector<knownGW> knownGateways;

@@ -28,7 +28,8 @@ simple NetworkServerApp like IApp
 
     string adrMethod = default("max");
     double adrDeviceMargin = default(15);
-
+    // ===== NEW: Debug control parameter =====
+    bool debugADR = default(false);  // Enable/disable ADR debug logging
     gates:
     output socketOut @labels(UdpControlInfo/up);
     input socketIn @labels(UdpControlInfo/down);

@@ -144,35 +144,32 @@ void SimpleLoRaApp::handleMessage(cMessage *msg)
         //scheduleAt(simTime(), sendMeasurements);
     }
 }
+
 void SimpleLoRaApp::handleMessageFromLowerLayer(cMessage *msg)
 {
+//    LoRaAppPacket *packet = check_and_cast<LoRaAppPacket *>(msg);
     auto pkt = check_and_cast<Packet *>(msg);
-    const auto &packet = pkt->peekAtFront<LoRaAppPacket>();
-
+    const auto & packet = pkt->peekAtFront<LoRaAppPacket>();
     if (simTime() >= getSimulation()->getWarmupPeriod())
         receivedADRCommands++;
-
-    if (evaluateADRinNode)
+    if(evaluateADRinNode)
     {
-        // ✅ Reset ADR counter when a downlink ADR command is received
         ADR_ACK_CNT = 0;
-
-        if (packet->getMsgType() == TXCONFIG)
+        if(packet->getMsgType() == TXCONFIG)
         {
-            if (packet->getOptions().getLoRaTP() != -1)
+            if(packet->getOptions().getLoRaTP() != -1)
             {
                 setTP(packet->getOptions().getLoRaTP());
             }
-            if (packet->getOptions().getLoRaSF() != -1)
+            if(packet->getOptions().getLoRaSF() != -1)
             {
                 setSF(packet->getOptions().getLoRaSF());
             }
-            EV << "New TP: " << getTP() << endl;
-            EV << "New SF: " << getSF() << endl;
+            EV << "New TP " << getTP() << endl;
+            EV << "New SF " << getSF() << endl;
         }
     }
 }
-
 
 bool SimpleLoRaApp::handleOperationStage(LifecycleOperation *operation, IDoneCallback *doneCallback)
 {
@@ -225,19 +222,14 @@ void SimpleLoRaApp::sendJoinRequest()
     EV << "Wysylam pakiet z SF: " << getSF() << endl;
     pktRequest->insertAtBack(payload);
     send(pktRequest, "socketOut");
-    if (evaluateADRinNode)
+    if(evaluateADRinNode)
     {
-        ADR_ACK_CNT++;  // Increase ADR_ACK counter for each uplink
-        if (ADR_ACK_CNT == ADR_ACK_LIMIT)
+        ADR_ACK_CNT++;
+        if(ADR_ACK_CNT == ADR_ACK_LIMIT) sendNextPacketWithADRACKReq = true;
+        if(ADR_ACK_CNT >= ADR_ACK_LIMIT + ADR_ACK_DELAY)
         {
-            sendNextPacketWithADRACKReq = true;
-        }
-
-        // ✅ If no ADR response after ADR_ACK_LIMIT + ADR_ACK_DELAY, increase SF
-        if (ADR_ACK_CNT >= (ADR_ACK_LIMIT + ADR_ACK_DELAY))
-        {
-            ADR_ACK_CNT = 0;  // Reset the counter
-            increaseSFIfPossible();  // Increase SF for better reliability
+            ADR_ACK_CNT = 0;
+            increaseSFIfPossible();
         }
     }
     emit(LoRa_AppPacketSent, getSF());
