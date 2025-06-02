@@ -39,13 +39,38 @@ Define_Module(NetworkServerApp);
 void NetworkServerApp::initialize(int stage)
 {
     if (stage == 0) {
-        // ===== NEW: Debug control parameter =====
         debugADR = par("debugADR").boolValue();
         
-        // Only open debug file if debugging is enabled
+        // DEBUGGING: Force console output to verify code runs
+        std::cout << "=== NetworkServerApp::initialize() called ===" << std::endl;
+        std::cout << "debugADR = " << debugADR << std::endl;
+        
+        // NEW - ADD THESE 6 LINES:
+        weightingAlpha = par("weightingAlpha").doubleValue();
+        useWeightedSNR = par("useWeightedSNR").boolValue();
+        stableAlpha = par("stableAlpha").doubleValue();
+        unstableAlpha = par("unstableAlpha").doubleValue();
+        useAdaptiveAlpha = par("useAdaptiveAlpha").boolValue();
+        gwTimeoutSeconds = par("gwTimeoutSeconds").doubleValue();
+        
+        std::cout << "useWeightedSNR = " << useWeightedSNR << std::endl;
+        std::cout << "weightingAlpha = " << weightingAlpha << std::endl;
+        
         if (debugADR) {
-            debugLogFile.open("debug_adr_opt_log.txt");
-            debugLogFile << "ADRopt Log started." << std::endl;
+            std::string filename = useWeightedSNR ? "debug_adr_opt_log_WEIGHTED.txt" : "debug_adr_opt_log_NO_WEIGHT.txt";
+            std::cout << "Attempting to create debug file: " << filename << std::endl;
+            
+            debugLogFile.open(filename);
+            if (debugLogFile.is_open()) {
+                std::cout << "Debug file created successfully!" << std::endl;
+                debugLogFile << "ADRopt Log started." << std::endl;
+                debugLogFile << "Weighted SNR enabled: " << useWeightedSNR << std::endl;
+                debugLogFile.flush(); // Force write to disk
+            } else {
+                std::cout << "ERROR: Failed to create debug file!" << std::endl;
+            }
+        } else {
+            std::cout << "Debug is DISABLED (debugADR = false)" << std::endl;
         }
 
         ASSERT(recvdPackets.size()==0);
@@ -255,6 +280,10 @@ void NetworkServerApp::updateKnownNodes(Packet* pkt)
         newNode.gwHistorySNIR[gwAddress]->setName(("SNIR from GW " + gwAddress.str()).c_str());
         newNode.gwHistorySNIR[gwAddress]->record(frame->getSNIR());
         
+        if (useWeightedSNR) {
+            updateWeightedSNR(newNode, gwAddress, frame->getSNIR());
+        }
+
         knownNodes.push_back(newNode);
 
         DEBUG_LOG("[INFO] Created new knownNode for " << frame->getTransmitterAddress()
@@ -293,6 +322,14 @@ void NetworkServerApp::updateKnownNodes(Packet* pkt)
                 
                 DEBUG_LOG("[DATA] SNIR window for GW " << gwAddress << " now has size="
                     << node.gwAdrListSNIR[gwAddress].size());
+                
+                if (useWeightedSNR) {
+                    updateWeightedSNR(node, gwAddress, frame->getSNIR());
+                    if (node.gwLastUpdate.size() > 1) {
+                        cleanupStaleGateways(node);
+                    }
+                }
+
                 break;
             }
         }
@@ -406,6 +443,76 @@ void NetworkServerApp::receiveSignal(cComponent *source, simsignal_t signalID, i
     }
 }
 
+
+void NetworkServerApp::updateWeightedSNR(knownNode& node, const L3Address& gwAddress, double currentSNIR) {
+    node.gwLastUpdate[gwAddress] = simTime();
+    
+    if (node.gwWeightedInitialized.find(gwAddress) == node.gwWeightedInitialized.end() || 
+        !node.gwWeightedInitialized[gwAddress]) {
+        node.gwWeightedSNIR[gwAddress] = currentSNIR;
+        node.gwWeightedInitialized[gwAddress] = true;
+        DEBUG_LOG("[WEIGHTED] Init GW " << gwAddress << " SNR: " << currentSNIR);
+    } else {
+        double alpha = useAdaptiveAlpha ? getAdaptiveAlpha(node, gwAddress) : weightingAlpha;
+        double oldWeighted = node.gwWeightedSNIR[gwAddress];
+        double newWeighted = alpha * currentSNIR + (1.0 - alpha) * oldWeighted;
+        node.gwWeightedSNIR[gwAddress] = newWeighted;
+        DEBUG_LOG("[WEIGHTED] GW " << gwAddress << " alpha=" << alpha << " old=" << oldWeighted << " new=" << newWeighted);
+    }
+}
+
+double NetworkServerApp::getAdaptiveAlpha(const knownNode& node, const L3Address& gwAddress) {
+    if (node.gwAdrListSNIR.count(gwAddress) && node.gwAdrListSNIR.at(gwAddress).size() >= 5) {
+        const auto& snrList = node.gwAdrListSNIR.at(gwAddress);
+        double sum = 0.0, sumSquares = 0.0;
+        int count = 0;
+        auto it = snrList.rbegin();
+        for (int i = 0; i < 5 && it != snrList.rend(); ++i, ++it) {
+            sum += *it;
+            sumSquares += (*it) * (*it);
+            count++;
+        }
+        if (count > 1) {
+            double mean = sum / count;
+            double variance = (sumSquares / count) - (mean * mean);
+            if (variance > 3.0) return unstableAlpha;
+            if (variance < 1.0) return stableAlpha;
+        }
+    }
+    return weightingAlpha;
+}
+
+void NetworkServerApp::cleanupStaleGateways(knownNode& node) {
+    if (!useWeightedSNR) return;
+    simtime_t now = simTime();
+    auto it = node.gwLastUpdate.begin();
+    while (it != node.gwLastUpdate.end()) {
+        if (now - it->second > gwTimeoutSeconds) {
+            L3Address gwAddr = it->first;
+            DEBUG_LOG("[CLEANUP] Removing stale GW " << gwAddr);
+            node.gwWeightedSNIR.erase(gwAddr);
+            node.gwWeightedInitialized.erase(gwAddr);
+            it = node.gwLastUpdate.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+double NetworkServerApp::getWeightedSNRForGateway(const knownNode& node, const L3Address& gwAddress) {
+    if (!useWeightedSNR) {
+        if (node.gwAdrListSNIR.count(gwAddress) && !node.gwAdrListSNIR.at(gwAddress).empty()) {
+            return *std::max_element(node.gwAdrListSNIR.at(gwAddress).begin(), 
+                                   node.gwAdrListSNIR.at(gwAddress).end());
+        }
+        return 0.0;
+    }
+    if (node.gwWeightedSNIR.count(gwAddress)) {
+        return node.gwWeightedSNIR.at(gwAddress);
+    }
+    return 0.0;
+}
+
 // ===== FIX 5: Updated evaluateADR function =====
 void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double SNIRinGW, double RSSIinGW)
 {
@@ -488,8 +595,15 @@ void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double 
                         // Calculate PER across all gateways
                         for (const auto& [gwAddress, snirList] : knownNodes[i].gwAdrListSNIR) {
                             if (snirList.empty()) continue;
-                            
-                            double gwSNIR = *std::max_element(snirList.begin(), snirList.end());
+            
+                            // Cleaner approach:
+                            gwSNIR = getWeightedSNRForGateway(knownNodes[i], gwAddress);
+                            if (useWeightedSNR) {
+                                double maxSNIR = *std::max_element(snirList.begin(), snirList.end());
+                                DEBUG_LOG("   [SNR] GW " << gwAddress << " Weighted: " << gwSNIR << " Max: " << maxSNIR);
+                            } else {
+                                DEBUG_LOG("   [SNR] GW " << gwAddress << " Max: " << gwSNIR);
+                            }
                             double deltaTP = TPdBm - currentTPdBm;
                             double adjustedSNIR = gwSNIR + deltaTP;
                             double gwSNR_d = estimateGWSNR_d(knownNodes[i], gwAddress, adjustedSNIR, sizeS);

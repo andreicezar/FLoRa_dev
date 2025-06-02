@@ -30,6 +30,13 @@ simple NetworkServerApp like IApp
     double adrDeviceMargin = default(15);
     // ===== NEW: Debug control parameter =====
     bool debugADR = default(false);  // Enable/disable ADR debug logging
+    // NEW - Add these weighted SNR parameters:
+    double weightingAlpha = default(0.7);
+    bool useWeightedSNR = default(true);
+    double stableAlpha = default(0.6);
+    double unstableAlpha = default(0.85);
+    bool useAdaptiveAlpha = default(true);
+    double gwTimeoutSeconds = default(300);
     gates:
     output socketOut @labels(UdpControlInfo/up);
     input socketIn @labels(UdpControlInfo/down);

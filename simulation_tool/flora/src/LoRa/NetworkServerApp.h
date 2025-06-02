@@ -49,6 +49,11 @@ public:
     std::map<L3Address, std::list<double>> gwAdrListSNIR;
     std::map<L3Address, cOutVector*> gwHistorySNIR;
     std::list<int> seqNumWindow; // size capped at 20
+  
+    // NEW - ADD THESE 3 LINES:
+    std::map<L3Address, double> gwWeightedSNIR;
+    std::map<L3Address, bool> gwWeightedInitialized;
+    std::map<L3Address, simtime_t> gwLastUpdate;
 };
 
 class knownGW
@@ -69,6 +74,15 @@ class NetworkServerApp : public cSimpleModule, cListener
 {
   private:
     bool debugADR;
+        
+    // NEW - ADD THESE 6 LINES:
+    double weightingAlpha = 0.7;
+    bool useWeightedSNR = true;
+    double stableAlpha = 0.6;
+    double unstableAlpha = 0.85;
+    bool useAdaptiveAlpha = true;
+    simtime_t gwTimeoutSeconds = 300;
+    
   protected:
     std::vector<knownNode> knownNodes;
     std::vector<knownGW> knownGateways;
@@ -107,6 +121,12 @@ class NetworkServerApp : public cSimpleModule, cListener
     std::tuple<int, int, int> chooseBestConfiguration(const std::map<std::tuple<int, int, int>, double>& PERpredic, double PERtarget, int payloadSize);
     double calculateTimeOnAir(int SF, int payloadBytes);
     double estimateGWSNR_d(const knownNode& node, const L3Address& gwAddress, double currentSNIR, double sizeS);
+
+    // NEW - ADD THESE 4 LINES:
+    void updateWeightedSNR(knownNode& node, const L3Address& gwAddress, double currentSNIR);
+    double getAdaptiveAlpha(const knownNode& node, const L3Address& gwAddress);
+    void cleanupStaleGateways(knownNode& node);
+    double getWeightedSNRForGateway(const knownNode& node, const L3Address& gwAddress);
 
   public:
     simsignal_t LoRa_ServerPacketReceived;
