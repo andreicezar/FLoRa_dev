@@ -54,6 +54,11 @@ public:
     std::map<L3Address, double> gwWeightedSNIR;
     std::map<L3Address, bool> gwWeightedInitialized;
     std::map<L3Address, simtime_t> gwLastUpdate;
+    int currentNodeWideWindowSize = 20;  // Track current window size for this node
+    static const int WINDOW_DEBOUNCE_THRESHOLD = 3;  // Must be stable for 3 evaluations
+    // Debounce pentru dynamic window
+    int lastDynamicWindowSize = 20;
+    int windowSizeStableCount = 0;
 };
 
 class knownGW
@@ -74,7 +79,7 @@ class NetworkServerApp : public cSimpleModule, cListener
 {
   private:
     bool debugADR;
-        
+    std::string debugLogFileName;  // ADD THIS LI
     // NEW - ADD THESE 6 LINES:
     double weightingAlpha = 0.7;
     bool useWeightedSNR = true;
@@ -82,7 +87,31 @@ class NetworkServerApp : public cSimpleModule, cListener
     double unstableAlpha = 0.85;
     bool useAdaptiveAlpha = true;
     simtime_t gwTimeoutSeconds = 300;
+
+    // NEW: Dynamic Window Parameters
+    bool useDynamicWindow = true;
+    int baseWindowSize = 20;         // Default window size
+    int minWindowSize = 5;           // Minimum window size (unstable conditions)
+    int maxWindowSize = 40;          // Maximum window size (stable conditions)
+    double stableVarianceThreshold = 1.0;    // Below this = stable (larger window)
+    double unstableVarianceThreshold = 3.0;  // Above this = unstable (smaller window)
+    // NEW: Weight bias parameters
+    bool useWeightBias = false;
+    double weightRobustnessBias = 0.1;
+
+      // ADD: Congestion tracking
+    std::map<int, int> sfUsageCount;  // SF -> number of nodes using it
+    std::map<int, double> sfCollisionRate;  // SF -> estimated collision rate
+    std::map<MacAddress, int> nodeCurrentSF;  // Track current SF per node
+    std::map<MacAddress, simtime_t> lastSFChange;  // Anti-flapping
     
+    // Congestion-aware parameters
+    bool useCongestionAwareness = true;
+    double maxSFLoad = 0.3;  // Max 30% nodes per SF
+    double collisionThreshold = 0.5;  // 50% collision rate triggers change
+    double snrStabilityThreshold = 2.0;  // SNR variance for stable channel
+    simtime_t sfChangeDebounce = 300;  // 5 minutes between SF changes
+
   protected:
     std::vector<knownNode> knownNodes;
     std::vector<knownGW> knownGateways;
@@ -128,6 +157,21 @@ class NetworkServerApp : public cSimpleModule, cListener
     void cleanupStaleGateways(knownNode& node);
     double getWeightedSNRForGateway(const knownNode& node, const L3Address& gwAddress);
 
+    // Dynamic window calculation function
+    int calculateDynamicWindowSize(const knownNode& node, const L3Address& gwAddress);
+    
+    // ADD: New congestion methods
+    void updateSFUsageStats();
+    double calculateSFCollisionRate(int SF);
+    bool isChannelCongested(int SF);
+    bool isNodeSNRStable(const knownNode& node);
+    int selectLeastCongestedSF(const knownNode& node, double targetPER);
+    void distributeSFsAcrossNetwork();
+    std::tuple<int, int, int> congestionAwareConfiguration(
+        const knownNode& node, 
+        const std::map<std::tuple<int, int, int>, double>& PERpredic,
+        double PERtarget,
+        int payloadSize);
   public:
     simsignal_t LoRa_ServerPacketReceived;
     int counterOfSentPacketsFromNodes = 0;
