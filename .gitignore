@@ -1,53 +1,78 @@
-# =======================================
-# 🔧 Build files and binaries
-# =======================================
+# Compiled Object files
 *.slo
 *.lo
 *.o
 *.obj
+
+# Compiled Dynamic libraries
 *.so
 *.dylib
 *.dll
+
+# Compiled Static libraries
 *.lai
 *.la
 *.a
 *.lib
+
+# Executables
 *.exe
 *.out
 *.app
-
-# OMNeT++ build outputs
 src/flora
 src/flora_dbg
+
+# OMNeT++ generated files
+src/**/*_m.h
+src/**/*_m.cc
 src/Makefile
-src/**/_m.h
-src/**/_m.cc
 
-# =======================================
-# 🗂 Project and IDE settings
-# =======================================
-.settings/
-.project
-.cproject
-.classpath
+# Build output
+/out
 
-# CDT index files (can be very large)
-.metadata/.plugins/org.eclipse.cdt.core/*.pdom
+# IDE and editor files
+.settings/*
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# =======================================
-# 📁 Output and simulation logs
-# =======================================
-/out/
-simulations/**/results/
+# OMNeT++ simulation files
+simulations/**/results
 simulations/**/.tkenvrc
 simulations/**/.qtenvrc
 simulations/**/.cmdenv-log
 simulations/**/valgrind.out
 simulations/**/log.txt
 
-# =======================================
-# ⚙️ Git LFS fallback (optional)
-# =======================================
-*.lfs
-simulation_tool/flora/simulations/config_files_for_scenarios/adr_margin_packet_size_tests/debug_adr_opt_log.txt
-debug_adr_opt_log.txt
+# Large data files (ignore all JSON and ANF files everywhere)
+*.json
+*.anf
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.cache
+
+# Python bytecode (if you have Python analysis scripts)
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Backup files
+*.bak
+*.backup
+*.old
