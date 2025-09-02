@@ -1,230 +1,230 @@
+#!/usr/bin/env python3
 import json
-import os
-from typing import Any, Dict, List, Set
-from collections import defaultdict, Counter
+import argparse
 from pathlib import Path
+from typing import List, Dict, Any
+from collections import Counter, defaultdict
+from datetime import datetime
 
-class JSONStructureAnalyzer:
-    def __init__(self):
-        self.structures = {}
-    
-    def get_type_info(self, value: Any) -> str:
-        """Get detailed type information for a value."""
-        if value is None:
-            return "null"
-        elif isinstance(value, bool):
-            return "boolean"
-        elif isinstance(value, int):
-            return "integer"
-        elif isinstance(value, float):
-            return "float"
-        elif isinstance(value, str):
-            return "string"
-        elif isinstance(value, list):
-            if len(value) == 0:
-                return "array (empty)"
-            # Check types of array elements
-            element_types = set()
-            for item in value[:10]:  # Sample first 10 items
-                element_types.add(self.get_type_info(item))
-            if len(element_types) == 1:
-                return f"array of {list(element_types)[0]} (length: {len(value)})"
-            else:
-                return f"array of mixed types {sorted(element_types)} (length: {len(value)})"
-        elif isinstance(value, dict):
-            return f"object ({len(value)} keys)"
+# -------------------------
+# Utility helpers
+# -------------------------
+def human_size(n: int) -> str:
+    for unit in ["B", "KB", "MB", "GB"]:
+        if n < 1024 or unit == "GB":
+            return f"{n:.2f} {unit}" if unit != "B" else f"{n} B"
+        n /= 1024.0
+    return f"{n:.2f} GB"
+
+def discover_json_files(directory: Path, recursive: bool, pattern: str) -> List[Path]:
+    if recursive:
+        return sorted(p for p in directory.rglob(pattern) if p.is_file())
+    return sorted(p for p in directory.glob(pattern) if p.is_file())
+
+def detect_file_kind(fname: str, obj: Dict[str, Any]) -> str:
+    low = fname.lower()
+    # filename hints first
+    if "app_vectors" in low:
+        return "vectors"      # treat app_vectors as vectors kind
+    if low.endswith("_vectors.json") or "vectors" in low:
+        return "vectors"
+    if "scalars" in low:
+        return "scalars"
+    if "histograms" in low:
+        return "histograms"
+    if "parameters" in low:
+        return "parameters"
+    # fallback: inspect data
+    if not isinstance(obj, dict) or not obj:
+        return "unknown"
+    run_key = next(iter(obj.keys()))
+    body = obj.get(run_key, {})
+    for k in ("vectors", "scalars", "histograms", "parameters"):
+        if k in body:
+            return k
+    return "unknown"
+
+def analyze_file(path: Path) -> Dict[str, Any]:
+    """Return lightweight structure stats for a single JSON export."""
+    try:
+        text = path.read_text(encoding="utf-8")
+        data = json.loads(text)
+    except Exception as e:
+        sz = path.stat().st_size if path.exists() else 0
+        return {"file": path.name, "ok": False, "error": str(e), "size": sz}
+
+    size = path.stat().st_size
+    kind = detect_file_kind(path.name, data)
+
+    stats: Dict[str, Any] = {"file": path.name, "ok": True, "kind": kind, "size": size}
+    try:
+        run_key = next(iter(data.keys()))
+        body = data.get(run_key, {})
+        stats["has_attributes"] = "attributes" in body
+        if kind in ("vectors", "scalars", "histograms", "parameters"):
+            items = body.get(kind, [])
+            stats["items"] = len(items)
         else:
-            return f"unknown ({type(value).__name__})"
-    
-    def analyze_object_structure(self, obj: Dict[str, Any], path: str = "root") -> Dict[str, Any]:
-        """Recursively analyze the structure of a JSON object."""
-        structure = {
-            "type": "object",
-            "keys": {},
-            "key_count": len(obj),
-            "path": path
-        }
-        
-        for key, value in obj.items():
-            current_path = f"{path}.{key}"
-            
-            if isinstance(value, dict):
-                structure["keys"][key] = self.analyze_object_structure(value, current_path)
-            elif isinstance(value, list):
-                structure["keys"][key] = self.analyze_array_structure(value, current_path)
-            else:
-                structure["keys"][key] = {
-                    "type": self.get_type_info(value),
-                    "path": current_path,
-                    "sample_value": str(value)[:100] + "..." if len(str(value)) > 100 else str(value)
-                }
-        
-        return structure
-    
-    def analyze_array_structure(self, arr: List[Any], path: str = "root") -> Dict[str, Any]:
-        """Analyze the structure of a JSON array."""
-        structure = {
-            "type": "array",
-            "length": len(arr),
-            "path": path,
-            "element_types": Counter(),
-            "sample_elements": []
-        }
-        
-        # Analyze element types
-        for i, item in enumerate(arr[:20]):  # Sample first 20 items
-            item_type = self.get_type_info(item)
-            structure["element_types"][item_type] += 1
-            
-            if i < 3:  # Store first 3 as samples
-                if isinstance(item, dict):
-                    structure["sample_elements"].append(self.analyze_object_structure(item, f"{path}[{i}]"))
-                elif isinstance(item, list):
-                    structure["sample_elements"].append(self.analyze_array_structure(item, f"{path}[{i}]"))
-                else:
-                    structure["sample_elements"].append({
-                        "type": item_type,
-                        "value": str(item)[:100] + "..." if len(str(item)) > 100 else str(item)
-                    })
-        
-        return structure
-    
-    def analyze_json_file(self, filepath: str) -> Dict[str, Any]:
-        """Analyze a single JSON file and return its structure."""
-        try:
-            print(f"Analyzing {filepath}...")
-            
-            with open(filepath, 'r', encoding='utf-8') as file:
-                data = json.load(file)
-            
-            file_info = {
-                "filename": os.path.basename(filepath),
-                "file_size": os.path.getsize(filepath),
-                "root_type": self.get_type_info(data)
-            }
-            
-            if isinstance(data, dict):
-                file_info["structure"] = self.analyze_object_structure(data)
-            elif isinstance(data, list):
-                file_info["structure"] = self.analyze_array_structure(data)
-            else:
-                file_info["structure"] = {
-                    "type": self.get_type_info(data),
-                    "value": str(data)[:200] + "..." if len(str(data)) > 200 else str(data)
-                }
-            
-            return file_info
-            
-        except json.JSONDecodeError as e:
-            return {
-                "filename": os.path.basename(filepath),
-                "error": f"JSON decode error: {str(e)}",
-                "file_size": os.path.getsize(filepath) if os.path.exists(filepath) else 0
-            }
-        except Exception as e:
-            return {
-                "filename": os.path.basename(filepath),
-                "error": f"Error reading file: {str(e)}",
-                "file_size": os.path.getsize(filepath) if os.path.exists(filepath) else 0
-            }
-    
-    def print_structure(self, structure: Dict[str, Any], indent: int = 0) -> None:
-        """Pretty print the JSON structure."""
-        prefix = "  " * indent
-        
-        if "error" in structure:
-            print(f"{prefix}❌ {structure['filename']}: {structure['error']}")
-            return
-        
-        print(f"{prefix}📁 {structure['filename']} ({structure['file_size']:,} bytes)")
-        print(f"{prefix}   Root type: {structure['root_type']}")
-        
-        self._print_structure_recursive(structure["structure"], indent + 1)
-        print()
-    
-    def _print_structure_recursive(self, structure: Dict[str, Any], indent: int) -> None:
-        """Recursively print structure details."""
-        prefix = "  " * indent
-        
-        if structure["type"] == "object":
-            print(f"{prefix}📦 Object with {structure['key_count']} keys:")
-            for key, value in structure["keys"].items():
-                print(f"{prefix}  🔑 {key}:")
-                if isinstance(value, dict) and "type" in value:
-                    if value["type"] in ["object", "array"]:
-                        self._print_structure_recursive(value, indent + 2)
-                    else:
-                        print(f"{prefix}    {value['type']}")
-                        if "sample_value" in value:
-                            print(f"{prefix}    Sample: {value['sample_value']}")
-        
-        elif structure["type"] == "array":
-            print(f"{prefix}📋 Array with {structure['length']} elements:")
-            print(f"{prefix}  Element types: {dict(structure['element_types'])}")
-            
-            if structure["sample_elements"]:
-                print(f"{prefix}  Sample elements:")
-                for i, sample in enumerate(structure["sample_elements"][:2]):
-                    print(f"{prefix}    [{i}]:")
-                    if isinstance(sample, dict) and "type" in sample:
-                        if sample["type"] in ["object", "array"]:
-                            self._print_structure_recursive(sample, indent + 3)
-                        else:
-                            print(f"{prefix}      {sample.get('type', 'unknown')}: {sample.get('value', '')}")
+            stats["items"] = 0
+    except Exception:
+        stats["items"] = 0
+    return stats
 
-    def analyze_files(self, file_paths: List[str]) -> None:
-        """Analyze multiple JSON files and display their structures."""
-        print("🔍 JSON Structure Analyzer")
-        print("=" * 50)
-        
-        results = []
-        for filepath in file_paths:
-            if not os.path.exists(filepath):
-                print(f"⚠️  File not found: {filepath}")
-                continue
-                
-            result = self.analyze_json_file(filepath)
-            results.append(result)
-            self.structures[filepath] = result
-        
-        print("\n📊 STRUCTURE ANALYSIS RESULTS")
-        print("=" * 50)
-        
-        for result in results:
-            self.print_structure(result)
-        
-        # Summary
-        print("📈 SUMMARY")
-        print("-" * 30)
-        total_size = sum(r.get("file_size", 0) for r in results)
-        successful = len([r for r in results if "error" not in r])
-        failed = len([r for r in results if "error" in r])
-        
-        print(f"Files analyzed: {len(results)}")
-        print(f"Successful: {successful}")
-        print(f"Failed: {failed}")
-        print(f"Total size: {total_size:,} bytes ({total_size/1024/1024:.2f} MB)")
+# -------------------------
+# Scenario grouping
+# -------------------------
+import re
+SCEN_RX = re.compile(
+    r'^(?P<base>.+-s\d+)_(?P<kind>(?:app_)?vectors|scalars|histograms|parameters)\.json$',
+    re.IGNORECASE
+)
 
+def split_scenarios(files: List[Path]):
+    """Split matched files into scenarios and collect unmatched."""
+    scenarios: Dict[str, List[Path]] = defaultdict(list)
+    unmatched: List[str] = []
+    for f in files:
+        m = SCEN_RX.match(f.name)
+        if m:
+            scenarios[m.group("base")].append(f)
+        else:
+            unmatched.append(f.name)
+    return scenarios, unmatched
+
+# -------------------------
+# Main
+# -------------------------
 def main():
-    # Always work relative to this script's folder (json_exports)
-    base_dir = Path(__file__).resolve().parent
+    ap = argparse.ArgumentParser(description="Analyze OMNeT++ export JSONs; save one combined structure JSON covering all scenarios.")
+    ap.add_argument("-d", "--dir", default=None, help="Folder to scan (default: folder containing this script)")
+    ap.add_argument("-r", "--recursive", action="store_true", help="Scan subfolders recursively")
+    ap.add_argument("-p", "--pattern", default="*.json", help="Glob pattern (default: *.json)")
+    ap.add_argument("--list", action="store_true", help="Print a line per file")
+    ap.add_argument("-o", "--out", default=None, help="Output JSON path (default: <dir>/all_scenarios_structure.json)")
+    args = ap.parse_args()
 
-    # Target the 4 files first (as before), but resolve them in base_dir
-    specific = [
-        "scenario-01-baseline-08_adr_no_init-s0_app_vectors.json",
-        "scenario-01-baseline-08_adr_no_init-s0_histograms.json",
-        "scenario-01-baseline-08_adr_no_init-s0_parameters.json",
-        "scenario-01-baseline-08_adr_no_init-s0_scalars.json",
-    ]
-    json_files = [str(base_dir / f) for f in specific]
+    base_dir = Path(args.dir).resolve() if args.dir else Path(__file__).resolve().parent
+    out_path = Path(args.out).resolve() if args.out else base_dir / "all_scenarios_structure.json"
 
-    # If none of those four exist, fall back to: analyze ALL JSONs in this folder
-    if not any(Path(p).exists() for p in json_files):
-        json_files = [str(p) for p in sorted(base_dir.glob("*.json"))]
+    files = discover_json_files(base_dir, args.recursive, args.pattern)
 
-    analyzer = JSONStructureAnalyzer()
-    analyzer.analyze_files(json_files)
+    print("🔍 JSON Structure Analyzer")
+    print("==================================================")
+    print(f"📂 Base: {base_dir}")
+    print(f"🔎 Pattern: {args.pattern} | Recursive: {args.recursive}")
+    print(f"🗂️  Found: {len(files)} file(s)\n")
 
+    if not files:
+        print("Nothing to analyze.")
+        # still write an empty template to out_path for reproducibility
+        payload = {
+            "meta": {
+                "base_dir": str(base_dir),
+                "pattern": args.pattern,
+                "recursive": args.recursive,
+                "generated_at": datetime.utcnow().isoformat() + "Z",
+                "total_files": 0,
+                "total_scenarios": 0,
+            },
+            "scenarios": {},
+            "unmatched": []
+        }
+        out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        print(f"💾 Wrote: {out_path}")
+        return
+
+    scenarios, unmatched = split_scenarios(files)
+
+    per_kind = Counter()
+    ok_count = 0
+    fail_count = 0
+    total_size = 0
+    total_items = 0
+
+    # Build per-scenario structure
+    scenarios_out: Dict[str, Any] = {}
+
+    for base, flist in sorted(scenarios.items()):
+        scen_files_summary = []
+        scen_kinds_present = set()
+        scen_tot_items = 0
+        scen_tot_size = 0
+
+        for f in sorted(flist):
+            res = analyze_file(f)
+            if res.get("ok"):
+                ok_count += 1
+                kind = res.get("kind", "unknown")
+                per_kind[kind] += 1
+                total_items += int(res.get("items", 0))
+                scen_tot_items += int(res.get("items", 0))
+                scen_kinds_present.add(kind)
+            else:
+                fail_count += 1
+
+            total_size += res.get("size", 0)
+            scen_tot_size += res.get("size", 0)
+            scen_files_summary.append(res)
+
+            if args.list:
+                if res.get("ok"):
+                    print(f"  ✓ {res['file']:60s}  kind={res['kind']:11s}  items={res.get('items',0):6d}  size={human_size(res['size'])}")
+                else:
+                    print(f"  ✗ {res['file']:60s}  ERROR: {res.get('error','')}")
+
+        expected_kinds = {"vectors", "scalars", "histograms", "parameters"}
+        missing = sorted(list(expected_kinds - scen_kinds_present))
+        scenarios_out[base] = {
+            "files": scen_files_summary,
+            "kinds_present": sorted(list(scen_kinds_present)),
+            "missing_kinds": missing,
+            "totals": {
+                "items": scen_tot_items,
+                "size_bytes": scen_tot_size,
+                "size_human": human_size(scen_tot_size)
+            }
+        }
+
+    # Also include any JSONs that didn't match the scenario pattern
+    unmatched_sorted = sorted(unmatched)
+
+    # Write combined JSON
+    payload = {
+        "meta": {
+            "base_dir": str(base_dir),
+            "pattern": args.pattern,
+            "recursive": args.recursive,
+            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "total_files": len(files),
+            "total_scenarios": len(scenarios_out),
+            "unmatched_count": len(unmatched_sorted)
+        },
+        "summary": {
+            "successful_files": ok_count,
+            "failed_files": fail_count,
+            "total_size_bytes": total_size,
+            "total_size_human": human_size(total_size),
+            "total_items": total_items,
+            "by_type": dict(sorted(per_kind.items()))
+        },
+        "scenarios": scenarios_out,
+        "unmatched": unmatched_sorted
+    }
+
+    out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    print("\n📊 SUMMARY")
+    print("--------------------------------------------------")
+    print(f"Scenarios      : {len(scenarios_out)}")
+    print(f"Files analyzed : {len(files)} | Successful: {ok_count} | Failed: {fail_count}")
+    print(f"Total size     : {human_size(total_size)}")
+    print(f"Total items    : {total_items}")
+    if per_kind:
+        print("By type:")
+        for k in sorted(per_kind.keys()):
+            print(f"  - {k:11s}: {per_kind[k]}")
+    if unmatched_sorted:
+        print(f"\n⚠️  Unmatched (not grouped as scenarios): {len(unmatched_sorted)} file(s)")
+    print(f"\n💾 Wrote: {out_path}\n")
 
 if __name__ == "__main__":
     main()
