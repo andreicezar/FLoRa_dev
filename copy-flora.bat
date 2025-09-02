@@ -131,7 +131,6 @@ if not exist "%DEST_SIM%\json_exports" md "%DEST_SIM%\json_exports"
 REM Copy structure excluding large files
 robocopy "%SRC_JSON%" "%DEST_SIM%\json_exports" /E /XF *.json *.anf /R:2 /W:1
 set "ROBO_RC=!ERRORLEVEL!"
-
 REM Robocopy exit codes: 0-7 are success, 8+ are errors
 if !ROBO_RC! GEQ 8 (
     echo [ERROR] Robocopy failed with exit code: !ROBO_RC!
@@ -141,10 +140,64 @@ if !ROBO_RC! GEQ 8 (
     echo [OK] Folder structure copied successfully (robocopy exit code: !ROBO_RC!)
 )
 
+REM ===== 4) COPY ENTIRE EXAMPLES FOLDER =====
+echo.
+echo Copying entire examples folder...
+set "SRC_EXAMPLES=%SRC_SIM_DIR%\examples"
+set "DEST_EXAMPLES=%DEST_SIM%\examples"
+
+if not exist "!SRC_EXAMPLES!" (
+    echo [WARNING] Examples folder not found at "!SRC_EXAMPLES!", skipping.
+) else (
+    echo From: "!SRC_EXAMPLES!"
+    echo To  : "!DEST_EXAMPLES!"
+    robocopy "!SRC_EXAMPLES!" "!DEST_EXAMPLES!" /E /R:2 /W:1
+    set "ROBO_RC_EXAMPLES=!ERRORLEVEL!"
+    if !ROBO_RC_EXAMPLES! GEQ 8 (
+        echo [ERROR] Robocopy failed to copy examples with exit code: !ROBO_RC_EXAMPLES!
+        pause
+        exit /b !ROBO_RC_EXAMPLES!
+    ) else (
+        echo [OK] Examples folder copied successfully (robocopy exit code: !ROBO_RC_EXAMPLES!)
+    )
+)
+
+REM ======================= NEW SECTION START =======================
+REM ===== 5) COPY UTILITY SCRIPTS =====
+echo.
+echo Copying utility scripts...
+
+set "SRC_SCRIPT1=%SRC_SIM_DIR%\integrated_run_and_export.sh"
+if exist "!SRC_SCRIPT1!" (
+    copy /Y "!SRC_SCRIPT1!" "%DEST_SIM%\" >nul
+    if errorlevel 1 (
+        echo [ERROR] Failed to copy integrated_run_and_export.sh
+    ) else (
+        echo [OK] Copied integrated_run_and_export.sh
+    )
+) else (
+    echo [WARNING] Script not found: integrated_run_and_export.sh, skipping.
+)
+
+set "SRC_SCRIPT2=%SRC_SIM_DIR%\complete_export_all_scenarios.sh"
+if exist "!SRC_SCRIPT2!" (
+    copy /Y "!SRC_SCRIPT2!" "%DEST_SIM%\" >nul
+    if errorlevel 1 (
+        echo [ERROR] Failed to copy complete_export_all_scenarios.sh
+    ) else (
+        echo [OK] Copied complete_export_all_scenarios.sh
+    )
+) else (
+    echo [WARNING] Script not found: complete_export_all_scenarios.sh, skipping.
+)
+REM ======================== NEW SECTION END ========================
+
 echo.
 echo ===== SUMMARY =====
 echo ZIP file: "%DEST_SIM%\json_exports.zip"
 echo Folder structure: "%DEST_SIM%\json_exports\"
+echo Examples folder: "%DEST_SIM%\examples\"
+echo Utility scripts: Copied to "%DEST_SIM%\"
 echo [SUCCESS] All operations completed successfully!
 echo.
 pause

@@ -2,6 +2,7 @@ import json
 import os
 from typing import Any, Dict, List, Set
 from collections import defaultdict, Counter
+from pathlib import Path
 
 class JSONStructureAnalyzer:
     def __init__(self):
@@ -205,24 +206,25 @@ class JSONStructureAnalyzer:
         print(f"Total size: {total_size:,} bytes ({total_size/1024/1024:.2f} MB)")
 
 def main():
-    # Define your JSON file paths here
-    json_files = [
+    # Always work relative to this script's folder (json_exports)
+    base_dir = Path(__file__).resolve().parent
+
+    # Target the 4 files first (as before), but resolve them in base_dir
+    specific = [
         "scenario-01-baseline-08_adr_no_init-s0_app_vectors.json",
-        "scenario-01-baseline-08_adr_no_init-s0_histograms.json", 
+        "scenario-01-baseline-08_adr_no_init-s0_histograms.json",
         "scenario-01-baseline-08_adr_no_init-s0_parameters.json",
-        "scenario-01-baseline-08_adr_no_init-s0_scalars.json"
+        "scenario-01-baseline-08_adr_no_init-s0_scalars.json",
     ]
-    
-    # Alternative: automatically find all JSON files in current directory
-    # json_files = [f for f in os.listdir(".") if f.endswith(".json")]
-    
+    json_files = [str(base_dir / f) for f in specific]
+
+    # If none of those four exist, fall back to: analyze ALL JSONs in this folder
+    if not any(Path(p).exists() for p in json_files):
+        json_files = [str(p) for p in sorted(base_dir.glob("*.json"))]
+
     analyzer = JSONStructureAnalyzer()
     analyzer.analyze_files(json_files)
-    
-    # Optional: Save results to a file
-    # with open("json_structure_analysis.json", "w") as f:
-    #     json.dump(analyzer.structures, f, indent=2, default=str)
-    #     print("Results saved to json_structure_analysis.json")
+
 
 if __name__ == "__main__":
     main()

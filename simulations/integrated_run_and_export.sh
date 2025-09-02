@@ -3,7 +3,7 @@
 # - Two functions: run_scenario, export_scenario
 # - Default: run each scenario, then export {scalars, parameters, histograms, app vectors}
 # - --export=false / --no-export: skip exports
-# - --scenario <N|name|ini>: run/export only that scenario (1..8, partial name, or full ini)
+# - --scenario <N|name|ini>: run/export only that scenario (1..N, partial name, or full ini)
 
 set -euo pipefail
 
@@ -21,17 +21,63 @@ export PATH="$FLORA_SRC:$INET_SRC:$PATH"    # DLL resolution on Windows
 # ---------- Constants
 NED_PATH=".:..:../../src:../../../inet4.4/src"     # purely relative; no overlays
 
+# -----------------------
+# Scenario INI inventory
+# -----------------------
 SCENARIOS=(
-  "omnetpp-scenario-01-01_fixed_baseline.ini"  # 1
-  "omnetpp-scenario-01-02_sf_only.ini"         # 2
-  "omnetpp-scenario-01-03_tp_only.ini"         # 3
-  "omnetpp-scenario-01-04_no_init.ini"         # 4
-  "omnetpp-scenario-01-05_adr_sf_init.ini"     # 5
-  "omnetpp-scenario-01-06_adr_tp_init.ini"     # 6
-  "omnetpp-scenario-01-07_adr_both_init.ini"   # 7
-  "omnetpp-scenario-01-08_adr_no_init.ini"     # 8
+  # --- Scenario 01 (8 variants) ---
+  "omnetpp-scenario-01-01_fixed_baseline.ini"   # 1
+  "omnetpp-scenario-01-02_sf_only.ini"          # 2
+  "omnetpp-scenario-01-03_tp_only.ini"          # 3
+  "omnetpp-scenario-01-04_no_init.ini"          # 4
+  "omnetpp-scenario-01-05_adr_sf_init.ini"      # 5
+  "omnetpp-scenario-01-06_adr_tp_init.ini"      # 6
+  "omnetpp-scenario-01-07_adr_both_init.ini"    # 7
+  "omnetpp-scenario-01-08_adr_no_init.ini"      # 8
+
+  # --- Scenario 02 (2 variants) ---
+  "omnetpp-scenario-02-adr-enabled.ini"         # 9
+  "omnetpp-scenario-02-fixed-sf12.ini"          # 10
+
+  # --- Scenario 03 (6 variants) ---
+  "omnetpp-scenario-03-sf7-fixed.ini"           # 11
+  "omnetpp-scenario-03-sf8-fixed.ini"           # 12
+  "omnetpp-scenario-03-sf9-fixed.ini"           # 13
+  "omnetpp-scenario-03-sf10-fixed.ini"          # 14
+  "omnetpp-scenario-03-sf11-fixed.ini"          # 15
+  "omnetpp-scenario-03-sf12-fixed.ini"          # 16
+
+  # --- Scenario 04 (2 variants) ---
+  "omnetpp-scenario-04-confirmed.ini"           # 17
+  "omnetpp-scenario-04-unconfirmed.ini"         # 18
+
+  # --- Scenario 05 (3 variants) ---
+  "omnetpp-scenario-05-low-traffic.ini"         # 19
+  "omnetpp-scenario-05-medium-traffic.ini"      # 20
+  "omnetpp-scenario-05-high-traffic.ini"        # 21
+
+  # --- Scenario 06 (3 variants) ---
+  "omnetpp-scenario-06-sf7-collision.ini"       # 22
+  "omnetpp-scenario-06-sf10-collision.ini"      # 23
+  "omnetpp-scenario-06-sf12-collision.ini"      # 24
+
+  # --- Scenario 07 (5 variants) ---
+  "omnetpp-scenario-07-freespace.ini"           # 25
+  "omnetpp-scenario-07-logdist-32.ini"          # 26
+  "omnetpp-scenario-07-logdist-35.ini"          # 27
+  "omnetpp-scenario-07-logdist-376.ini"         # 28
+  "omnetpp-scenario-07-logdist-40.ini"          # 29
+
+  # --- Scenario 08 (3 variants) ---
+  "omnetpp-scenario-08-1gw.ini"                 # 30
+  "omnetpp-scenario-08-2gw.ini"                 # 31
+  "omnetpp-scenario-08-4gw.ini"                 # 32
 )
+
+# Map INI -> expected results base (no extension), matching your tree:
+#   scenario-XX-baseline-<subname>-s0.{sca,vec,vci}
 declare -A RESULT_PREFIX=(
+  # Scenario 01
   ["omnetpp-scenario-01-01_fixed_baseline.ini"]="scenario-01-baseline-01_fixed_baseline"
   ["omnetpp-scenario-01-02_sf_only.ini"]="scenario-01-baseline-02_sf_only"
   ["omnetpp-scenario-01-03_tp_only.ini"]="scenario-01-baseline-03_tp_only"
@@ -40,16 +86,87 @@ declare -A RESULT_PREFIX=(
   ["omnetpp-scenario-01-06_adr_tp_init.ini"]="scenario-01-baseline-06_adr_tp_init"
   ["omnetpp-scenario-01-07_adr_both_init.ini"]="scenario-01-baseline-07_adr_both_init"
   ["omnetpp-scenario-01-08_adr_no_init.ini"]="scenario-01-baseline-08_adr_no_init"
+
+  # Scenario 02
+  ["omnetpp-scenario-02-adr-enabled.ini"]="scenario-02-baseline-adr-enabled"
+  ["omnetpp-scenario-02-fixed-sf12.ini"]="scenario-02-baseline-fixed-sf12"
+
+  # Scenario 03
+  ["omnetpp-scenario-03-sf7-fixed.ini"]="scenario-03-baseline-sf7-fixed"
+  ["omnetpp-scenario-03-sf8-fixed.ini"]="scenario-03-baseline-sf8-fixed"
+  ["omnetpp-scenario-03-sf9-fixed.ini"]="scenario-03-baseline-sf9-fixed"
+  ["omnetpp-scenario-03-sf10-fixed.ini"]="scenario-03-baseline-sf10-fixed"
+  ["omnetpp-scenario-03-sf11-fixed.ini"]="scenario-03-baseline-sf11-fixed"
+  ["omnetpp-scenario-03-sf12-fixed.ini"]="scenario-03-baseline-sf12-fixed"
+
+  # Scenario 04
+  ["omnetpp-scenario-04-confirmed.ini"]="scenario-04-baseline-confirmed"
+  ["omnetpp-scenario-04-unconfirmed.ini"]="scenario-04-baseline-unconfirmed"
+
+  # Scenario 05
+  ["omnetpp-scenario-05-low-traffic.ini"]="scenario-05-baseline-low-traffic"
+  ["omnetpp-scenario-05-medium-traffic.ini"]="scenario-05-baseline-medium-traffic"
+  ["omnetpp-scenario-05-high-traffic.ini"]="scenario-05-baseline-high-traffic"
+
+  # Scenario 06
+  ["omnetpp-scenario-06-sf7-collision.ini"]="scenario-06-baseline-sf7-collision"
+  ["omnetpp-scenario-06-sf10-collision.ini"]="scenario-06-baseline-sf10-collision"
+  ["omnetpp-scenario-06-sf12-collision.ini"]="scenario-06-baseline-sf12-collision"
+
+  # Scenario 07
+  ["omnetpp-scenario-07-freespace.ini"]="scenario-07-baseline-freespace"
+  ["omnetpp-scenario-07-logdist-32.ini"]="scenario-07-baseline-logdist-32"
+  ["omnetpp-scenario-07-logdist-35.ini"]="scenario-07-baseline-logdist-35"
+  ["omnetpp-scenario-07-logdist-376.ini"]="scenario-07-baseline-logdist-376"
+  ["omnetpp-scenario-07-logdist-40.ini"]="scenario-07-baseline-logdist-40"
+
+  # Scenario 08  (adjust here if your generator uses another label)
+  ["omnetpp-scenario-08-1gw.ini"]="scenario-08-baseline-1gw"
+  ["omnetpp-scenario-08-2gw.ini"]="scenario-08-baseline-2gw"
+  ["omnetpp-scenario-08-4gw.ini"]="scenario-08-baseline-4gw"
 )
+
+# Optional fuzzy names to help --scenario matching (kept minimal; names only)
 declare -A NAME_HINT=(
-  [1]="01_fixed_baseline baseline"
-  [2]="02_sf_only sf_only"
-  [3]="03_tp_only tp_only"
-  [4]="04_no_init no_init"
-  [5]="05_adr_sf_init adr_sf_init"
-  [6]="06_adr_tp_init adr_tp_init"
-  [7]="07_adr_both_init adr_both_init"
-  [8]="08_adr_no_init adr_no_init"
+  [1]="01_fixed_baseline"
+  [2]="02_sf_only"
+  [3]="03_tp_only"
+  [4]="04_no_init"
+  [5]="05_adr_sf_init"
+  [6]="06_adr_tp_init"
+  [7]="07_adr_both_init"
+  [8]="08_adr_no_init"
+
+  [9]="adr-enabled"
+  [10]="fixed-sf12"
+
+  [11]="sf7-fixed"
+  [12]="sf8-fixed"
+  [13]="sf9-fixed"
+  [14]="sf10-fixed"
+  [15]="sf11-fixed"
+  [16]="sf12-fixed"
+
+  [17]="confirmed"
+  [18]="unconfirmed"
+
+  [19]="low-traffic"
+  [20]="medium-traffic"
+  [21]="high-traffic"
+
+  [22]="sf7-collision"
+  [23]="sf10-collision"
+  [24]="sf12-collision"
+
+  [25]="freespace"
+  [26]="logdist-32"
+  [27]="logdist-35"
+  [28]="logdist-376"
+  [29]="logdist-40"
+
+  [30]="1gw"
+  [31]="2gw"
+  [32]="4gw"
 )
 
 # ---------- Args
@@ -69,9 +186,21 @@ done
 lower(){ echo "$*" | tr '[:upper:]' '[:lower:]'; }
 resolve_scenario_ini(){
   local sel="$(lower "$1")"
-  [[ "$sel" =~ ^[1-8]$ ]] && { echo "${SCENARIOS[$((sel-1))]}"; return 0; }
+  # numeric index (supports at least 1..32 by fuzzy fallback)
+  if [[ "$sel" =~ ^[0-9]+$ ]]; then
+    local idx="$sel"
+    if (( idx>=1 && idx<=${#SCENARIOS[@]} )); then
+      echo "${SCENARIOS[$((idx-1))]}"; return 0
+    fi
+  fi
+  # exact match
   for ini in "${SCENARIOS[@]}"; do [[ "$(lower "$ini")" == "$sel" ]] && { echo "$ini"; return 0; }; done
-  for i in {1..8}; do local ini="${SCENARIOS[$((i-1))]}"; local hint="$(lower "${NAME_HINT[$i]} $ini")"; [[ "$hint" == *"$sel"* ]] && { echo "$ini"; return 0; }; done
+  # fuzzy on hints or ini name
+  for i in "${!SCENARIOS[@]}"; do
+    local ini="${SCENARIOS[$i]}"
+    local hint="$(lower "${NAME_HINT[$((i+1))]} $ini")"
+    [[ "$hint" == *"$sel"* ]] && { echo "$ini"; return 0; }
+  done
   return 1
 }
 latest_result_base(){   # basename (no extension) for newest matching prefix
@@ -83,16 +212,35 @@ latest_result_base(){   # basename (no extension) for newest matching prefix
 }
 file_size(){ local f="$1"; [[ -f "$f" ]] && ls -lh "$f" | awk '{print $5}' || echo "0B"; }
 
+# ---------- The two functions (unchanged)
+run_scenario(){
+  local ini="$1"
+  echo ""
+  echo "=== RUN: $ini ==="
+  ( cd "$EXAMPLES_DIR" && opp_run -u Cmdenv -c General -f "$ini" \
+      -n "$NED_PATH" -l ../../src/flora -l ../../../inet4.4/src/INET )
+  echo "=== DONE: $ini ==="
+}
+
 # run opp_scavetool, keep stdout so we can parse "Exported N ..." / "Export N ..."
-# If no JSON (or empty '[]'), remove the file and return 1; else print count & size and return 0.
+# If JSON missing or empty [], delete it and return 1; else print count+size and return 0.
 export_with_count(){
-  local src="$1" filter="$2" out="$3" label="$4"
+  local src="$1"      # .sca or .vec file
+  local filter="$2"   # scave filter (quoted)
+  local out="$3"      # output json path
+  local label="$4"    # label to print (e.g., scalars)
+
   local log; log="$(mktemp)"
-  if ! opp_scavetool export -f JSON -o "$out" -f "$filter" "$src" 2>&1 | tee "$log"; then
-    rm -f "$out"; rm -f "$log"; return 1
+
+  # Try modern flag first (-F JSON), fall back to older (-f JSON) if needed.
+  if ! opp_scavetool export -F JSON -o "$out" -f "$filter" "$src" 2>&1 | tee "$log"; then
+    rm -f "$out"
+    if ! opp_scavetool export -f JSON -o "$out" -f "$filter" "$src" 2>&1 | tee "$log"; then
+      rm -f "$out"; rm -f "$log"; return 1
+    fi
   fi
 
-  # Delete if missing or trivially empty
+  # If output missing or trivially empty, treat as no data
   if [[ ! -f "$out" ]]; then rm -f "$log"; return 1; fi
   local szb; szb=$(wc -c < "$out" | tr -d '[:space:]')
   if [[ "$szb" -le 4 ]] || grep -q '^\s*\[\s*\]\s*$' "$out"; then
@@ -104,23 +252,13 @@ export_with_count(){
   rm -f "$log"
 
   # Print summary
-  local hsize; hsize="$(file_size "$out")"
+  local hsize; hsize="$(ls -lh "$out" | awk '{print $5}')"
   if [[ -n "$count" ]]; then
     echo "       -> $label: $count items, size $hsize"
   else
     echo "       -> $label: size $hsize"
   fi
   return 0
-}
-
-# ---------- The two functions
-run_scenario(){
-  local ini="$1"
-  echo ""
-  echo "=== RUN: $ini ==="
-  ( cd "$EXAMPLES_DIR" && opp_run -u Cmdenv -c General -f "$ini" \
-      -n "$NED_PATH" -l ../../src/flora -l ../../../inet4.4/src/INET )
-  echo "=== DONE: $ini ==="
 }
 
 export_scenario(){
