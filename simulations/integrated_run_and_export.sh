@@ -3,7 +3,7 @@
 # - Two functions: run_scenario, export_scenario
 # - Default: run each scenario, then export {scalars, parameters, histograms, app vectors}
 # - --export=false / --no-export: skip exports
-# - --scenario <N|name|ini>: run/export only that scenario (1..N, partial name, or full ini)
+# - --scenario <N|name|ini|scenario-XX>: run/export a single INI or ALL sub-scenarios of scenario-XX
 
 set -euo pipefail
 
@@ -24,6 +24,13 @@ NED_PATH=".:..:../../src:../../../inet4.4/src"     # purely relative; no overlay
 # -----------------------
 # Scenario INI inventory
 # -----------------------
+
+# NEW: scenarios that should run FIRST (do not affect numeric indices of the main list)
+EXTRA_SCENARIOS_FIRST=(
+  "n1000-gw1-ADR.ini"
+)
+
+# Main set (kept identical; indices 1..32 remain stable)
 SCENARIOS=(
   # --- Scenario 01 (8 variants) ---
   "omnetpp-scenario-01-01_fixed_baseline.ini"   # 1
@@ -74,9 +81,11 @@ SCENARIOS=(
   "omnetpp-scenario-08-4gw.ini"                 # 32
 )
 
-# Map INI -> expected results base (no extension), matching your tree:
-#   scenario-XX-baseline-<subname>-s0.{sca,vec,vci}
+# Map INI -> expected results base (no extension), matching your result naming
 declare -A RESULT_PREFIX=(
+  # EXTRA (runs first)
+  ["n1000-gw1-ADR.ini"]="n1000-gw1-ADR"
+
   # Scenario 01
   ["omnetpp-scenario-01-01_fixed_baseline.ini"]="scenario-01-baseline-01_fixed_baseline"
   ["omnetpp-scenario-01-02_sf_only.ini"]="scenario-01-baseline-02_sf_only"
@@ -120,7 +129,7 @@ declare -A RESULT_PREFIX=(
   ["omnetpp-scenario-07-logdist-376.ini"]="scenario-07-baseline-logdist-376"
   ["omnetpp-scenario-07-logdist-40.ini"]="scenario-07-baseline-logdist-40"
 
-  # Scenario 08  (adjust here if your generator uses another label)
+  # Scenario 08
   ["omnetpp-scenario-08-1gw.ini"]="scenario-08-baseline-1gw"
   ["omnetpp-scenario-08-2gw.ini"]="scenario-08-baseline-2gw"
   ["omnetpp-scenario-08-4gw.ini"]="scenario-08-baseline-4gw"
@@ -128,6 +137,9 @@ declare -A RESULT_PREFIX=(
 
 # Optional fuzzy names to help --scenario matching (kept minimal; names only)
 declare -A NAME_HINT=(
+  # EXTRA
+  [X1]="n1000-gw1-ADR"
+
   [1]="01_fixed_baseline"
   [2]="02_sf_only"
   [3]="03_tp_only"
@@ -184,18 +196,51 @@ done
 
 # ---------- Helpers
 lower(){ echo "$*" | tr '[:upper:]' '[:lower:]'; }
+
+# Return all INIs belonging to a whole scenario group (scenario-XX)
+resolve_scenarios_group(){
+  local sel="$(lower "$1")"
+  local num=""
+
+  # Accept: "scenario-01", "scenario-1", "omnetpp-scenario-01"
+  if [[ "$sel" =~ ^(omnetpp-)?scenario-([0-9]{1,2})$ ]]; then
+    num="${BASH_REMATCH[2]}"
+  else
+    return 1
+  fi
+
+  printf -v num2 "%02d" "$num"
+  local prefix="omnetpp-scenario-${num2}-"
+  local out=()
+  for ini in "${SCENARIOS[@]}"; do
+    local lname="$(lower "$ini")"
+    [[ "$lname" == ${prefix}* ]] && out+=("$ini")
+  done
+
+  ((${#out[@]})) && printf '%s\n' "${out[@]}" || return 1
+}
+
+
 resolve_scenario_ini(){
   local sel="$(lower "$1")"
-  # numeric index (supports at least 1..32 by fuzzy fallback)
+
+  # numeric index (1..N) for main SCENARIOS only (indices stay stable)
   if [[ "$sel" =~ ^[0-9]+$ ]]; then
     local idx="$sel"
     if (( idx>=1 && idx<=${#SCENARIOS[@]} )); then
       echo "${SCENARIOS[$((idx-1))]}"; return 0
     fi
   fi
-  # exact match
+
+  # exact match against both arrays
+  for ini in "${EXTRA_SCENARIOS_FIRST[@]}"; do [[ "$(lower "$ini")" == "$sel" ]] && { echo "$ini"; return 0; }; done
   for ini in "${SCENARIOS[@]}"; do [[ "$(lower "$ini")" == "$sel" ]] && { echo "$ini"; return 0; }; done
-  # fuzzy on hints or ini name
+
+  # fuzzy on hints or ini names (both arrays)
+  for ini in "${EXTRA_SCENARIOS_FIRST[@]}"; do
+    local hint="$(lower "$ini ${NAME_HINT[X1]-}")"
+    [[ "$hint" == *"$sel"* ]] && { echo "$ini"; return 0; }
+  done
   for i in "${!SCENARIOS[@]}"; do
     local ini="${SCENARIOS[$i]}"
     local hint="$(lower "${NAME_HINT[$((i+1))]} $ini")"
@@ -203,16 +248,19 @@ resolve_scenario_ini(){
   done
   return 1
 }
+
 latest_result_base(){   # basename (no extension) for newest matching prefix
   local prefix="$1" ext="$2" newest=""
   newest=$(ls -1t "$RESULTS_DIR/${prefix}-s*.$ext" 2>/dev/null | head -1 || true)
   [[ -z "$newest" ]] && newest=$(ls -1t "$RESULTS_DIR/${prefix}.$ext" 2>/dev/null | head -1 || true)
+  # this covers names like n1000-gw1-ADR-s0.ini.sca
   [[ -z "$newest" ]] && newest=$(ls -1t "$RESULTS_DIR/${prefix}"*".$ext" 2>/dev/null | head -1 || true)
   [[ -n "$newest" ]] && { newest="${newest%.*}"; basename "$newest"; } || echo ""
 }
+
 file_size(){ local f="$1"; [[ -f "$f" ]] && ls -lh "$f" | awk '{print $5}' || echo "0B"; }
 
-# ---------- The two functions (unchanged)
+# ---------- Core functions
 run_scenario(){
   local ini="$1"
   echo ""
@@ -328,16 +376,34 @@ echo "NED path: $NED_PATH"
 echo ""
 
 if [[ -n "${SCENARIO_ARG:-}" ]]; then
-  ini="$(resolve_scenario_ini "$SCENARIO_ARG")" || { echo "Could not resolve scenario: $SCENARIO_ARG"; exit 2; }
+  # First: does it refer to a whole scenario group (e.g., "scenario-01")?
+  if mapfile -t MANY < <(resolve_scenarios_group "$SCENARIO_ARG"); then
+    echo "Resolved group '${SCENARIO_ARG}' -> ${#MANY[@]} INIs"
+    for ini in "${MANY[@]}"; do
+      run_scenario "$ini"
+      if $DO_EXPORT; then export_scenario "$ini"; fi
+    done
+    exit 0
+  fi
+
+  # Otherwise: resolve a single scenario by index/name/partial/ini
+  ini="$(resolve_scenario_ini "$SCENARIO_ARG")" || { echo "Could not resolve scenario selector: $SCENARIO_ARG"; exit 2; }
   run_scenario "$ini"
-  $DO_EXPORT && export_scenario "$ini"
+  if $DO_EXPORT; then export_scenario "$ini"; fi
   exit 0
 fi
 
+
+# Run the EXTRA first (n1000-gw1-ADR.ini), then the standard list
+for ini in "${EXTRA_SCENARIOS_FIRST[@]}"; do
+  run_scenario "$ini"
+  if $DO_EXPORT; then export_scenario "$ini"; fi
+done
+
 for ini in "${SCENARIOS[@]}"; do
   run_scenario "$ini"
-  $DO_EXPORT && export_scenario "$ini"
+  if $DO_EXPORT; then export_scenario "$ini"; fi
 done
 
 echo ""
-echo "All done."
+echo "=== ALL DONE ==="

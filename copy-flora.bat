@@ -192,12 +192,34 @@ if exist "!SRC_SCRIPT2!" (
 )
 REM ======================== NEW SECTION END ========================
 
+REM ===== 6) COPY PYTHON SCRIPTS =====
+echo.
+echo Copying Python analysis scripts...
+
+set "PYTHON_SCRIPTS=analyze_flora_scenario_01.py analyze_flora_scenario_02.py analyze_n100_gw1_ADR.py flora_names.py"
+
+for %%s in (%PYTHON_SCRIPTS%) do (
+    set "SRC_PY=%SRC_SIM_DIR%\%%s"
+    if exist "!SRC_PY!" (
+        copy /Y "!SRC_PY!" "%DEST_SIM%\" >nul
+        if errorlevel 1 (
+            echo [ERROR] Failed to copy %%s
+        ) else (
+            echo [OK] Copied %%s
+        )
+    ) else (
+        echo [WARNING] Script not found: %%s, skipping.
+    )
+)
+
+REM Update the summary section
 echo.
 echo ===== SUMMARY =====
 echo ZIP file: "%DEST_SIM%\json_exports.zip"
 echo Folder structure: "%DEST_SIM%\json_exports\"
 echo Examples folder: "%DEST_SIM%\examples\"
 echo Utility scripts: Copied to "%DEST_SIM%\"
+echo Python scripts: Copied to "%DEST_SIM%\"
 echo [SUCCESS] All operations completed successfully!
 echo.
 pause
