@@ -196,7 +196,7 @@ REM ===== 6) COPY PYTHON SCRIPTS =====
 echo.
 echo Copying Python analysis scripts...
 
-set "PYTHON_SCRIPTS=analyze_flora_scenario_01.py analyze_flora_scenario_02.py analyze_flora_scenario_03.py analyze_n100_gw1_ADR.py flora_names.py"
+set "PYTHON_SCRIPTS=analyze_flora_scenario_01.py analyze_flora_scenario_02.py analyze_flora_scenario_03.py analyze_flora_scenario_05.py analyze_n100_gw1_ADR.py flora_names.py"
 
 for %%s in (%PYTHON_SCRIPTS%) do (
     set "SRC_PY=%SRC_SIM_DIR%\%%s"
