@@ -1,4 +1,6 @@
 # Scenario-05 Analyzer (Baseline variants) for OMNeT++/FLoRa
+# Area-aware version: supports --area to pick the proper *_<area> JSONs
+#
 # - Matches Scenario-02 script structure and printouts
 # - Uses all four JSONs where present (parameters, scalars, histograms/statistics, app_vectors/vectors)
 # - Prints per-config Initialization Conditions, a context table, and a multi-config scoreboard
@@ -7,10 +9,10 @@
 
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple, Iterable
-import argparse, json, re, math, statistics  # <-- statistics needed for per-node PDR stats
+import argparse, json, re, math, statistics, sys
 
 # =============================================================================
-# Key tracking  (same as Scenario-02)
+# Key tracking
 # =============================================================================
 USED_KEYS: Dict[str, set] = {
     "parameters": set(), "scalars": set(), "histograms": set(), "vectors": set()
@@ -61,7 +63,7 @@ def dump_used_keys(path: Path) -> None:
     print(f"[keys] Saved to: {path}")
 
 # =============================================================================
-# JSON helpers  (same behavior as Scenario-02)
+# JSON helpers
 # =============================================================================
 def read_json(path: Path) -> Any:
     with open(path, "r", encoding="utf-8") as f:
@@ -106,7 +108,7 @@ def get_vectors_list(obj: Any) -> List[dict]:
     return []
 
 # =============================================================================
-# Parsing helpers  (same as Scenario-02)
+# Parsing helpers
 # =============================================================================
 _TIME_RX = re.compile(r"^\s*([0-9]+(?:\.[0-9]+)?)\s*([a-zA-Z]+)?\s*$")
 def parse_time_to_seconds(s: str) -> Optional[float]:
@@ -136,14 +138,45 @@ def parse_bool_text(s: str) -> Optional[bool]:
     return None
 
 # =============================================================================
-# File discovery  (generalized from Scenario-02)
+# File discovery (now area-aware)
 # =============================================================================
-def find_bundle(json_dir: Path, base_tokens: List[str]) -> Dict[str, Path]:
+def _area_token_variants(area: str) -> List[str]:
+    """
+    Produce a small set of filename tokens that may represent this area.
+    E.g. '1x1km' -> ['_1x1km', '-1x1km', '_1km', '-1km']
+         '1km'   -> ['_1km',   '-1km',   '_1x1km', '-1x1km']  (be liberal)
+    """
+    a = area.strip().lower()
+    toks = set()
+    for sep in ("_", "-"):
+        toks.add(f"{sep}{a}")
+        if "x" in a and a.endswith("km"):
+            # also accept the short form (e.g. 1x1km -> 1km)
+            short = a.split("x")[0] + "km"
+            toks.add(f"{sep}{short}")
+        if "x" not in a and a.endswith("km"):
+            # also accept long form (e.g. 1km -> 1x1km)
+            try:
+                n = re.match(r"^(\d+)km$", a)
+                if n:
+                    longf = f"{n.group(1)}x{n.group(1)}km"
+                    toks.add(f"{sep}{longf}")
+            except Exception:
+                pass
+    return sorted(toks)
+
+def _name_has_area_tag(name: str, area_tokens: List[str]) -> bool:
+    low = name.lower()
+    return any(tok in low for tok in area_tokens)
+
+def find_bundle(json_dir: Path, base_tokens: List[str], area_tokens: Optional[List[str]]) -> Dict[str, Path]:
     pats = [p.lower() for p in base_tokens]
     out: Dict[str, Path] = {}
     for p in json_dir.glob("*.json"):
         name = p.name.lower()
         if all(sub in name for sub in pats):
+            if area_tokens and not _name_has_area_tag(name, area_tokens):
+                continue
             if "parameters" in name and "parameters" not in out: out["parameters"] = p
             elif "scalars" in name and "scalars" not in out: out["scalars"] = p
             elif ("histograms" in name or "statistics" in name) and "histograms" not in out: out["histograms"] = p
@@ -151,28 +184,34 @@ def find_bundle(json_dir: Path, base_tokens: List[str]) -> Dict[str, Path]:
             elif "vectors" in name and "app_vectors" not in out: out["app_vectors"] = p
     return out
 
-def find_all_bundles_s01(json_dir: Path) -> List[Tuple[str, Dict[str, Path]]]:
+def find_all_bundles_s05(json_dir: Path, area: Optional[str]) -> List[Tuple[str, Dict[str, Path]]]:
     """
-    Finds every sub-scenario for scenario-05-baseline-* and returns (label, bundle) pairs.
+    Finds every sub-scenario for scenario-05-baseline-* (with -s#) and returns (label, bundle) pairs.
+    If --area is given, restrict to files that contain that area tag (supports '_1x1km' and '_1km' styles).
     """
+    area_tokens = _area_token_variants(area) if area else None
+
     bases = set()
     for p in json_dir.glob("*.json"):
-        name = p.name
-        low = name.lower()
+        low = p.name.lower()
         if "scenario-05" in low and "baseline" in low and re.search(r"-s\d+", low):
-            base = re.sub(r"_(parameters|scalars|histograms|statistics|app_vectors|vectors|extracted)\.json$", "", name, flags=re.I)
+            if area_tokens and not _name_has_area_tag(low, area_tokens):
+                continue
+            base = re.sub(r"_(parameters|scalars|histograms|statistics|app_vectors|vectors|extracted)\.json$",
+                          "", p.name, flags=re.I)
             bases.add(base)
+
     out: List[Tuple[str, Dict[str, Path]]] = []
     for base in sorted(bases):
         label = base
         toks = [part for part in base.lower().split("-") if part]
-        bundle = find_bundle(json_dir, [t for t in toks if t])
+        bundle = find_bundle(json_dir, toks, area_tokens)
         if bundle.get("parameters") and bundle.get("scalars"):
             out.append((label, bundle))
     return out
 
 # =============================================================================
-# Aliases and module selectors (copied from Scenario-02)
+# Aliases and module selectors (unchanged)
 # =============================================================================
 PARAM_RX = {
     "nodes":         [re.compile(r"\bnumberOfNodes\b", re.I)],
@@ -240,7 +279,7 @@ AIRTIME_NAMES = [
 ]
 
 # =============================================================================
-# Lookups and metric helpers  (same logic as Scenario-02)
+# Lookups and metric helpers (unchanged)
 # =============================================================================
 def find_param_by_alias(params: Iterable[Dict[str, Any]], alias_list: List[re.Pattern]) -> Optional[str]:
     for rx in alias_list:
@@ -282,7 +321,6 @@ def sf_counts_from_scalars(scalars: Iterable[Dict[str, Any]]) -> Dict[int,int]:
         _used_scalar(nm)
     return counts
 
-# ---- Histogram & vector stats ----
 def _hist_stat(entry: dict, field: str) -> Optional[float]:
     stat = entry.get("stat")
     if isinstance(stat, dict) and field in stat:
@@ -391,7 +429,6 @@ def vector_stats(vectors: List[dict], name_rxs: List[re.Pattern]) -> Tuple[Optio
     median = vals[mid] if n%2==1 else 0.5*(vals[mid-1]+vals[mid])
     return mean, median, n
 
-# ---- Sent/received/collisions and GW RX ----
 PRIMARY_SENT_NAMES = SCALAR_RX["sent_primary"]
 FALLBACK_SENT_NAME = SCALAR_RX["sent_fallback"][0]
 
@@ -459,7 +496,6 @@ def pick_total_airtime_seconds(scalars: List[dict], histograms: List[dict]) -> O
             if fv is not None: total += fv; found = True; _used_scalar(nm)
     return total if found else None
 
-# ---- ADR Commands ----
 def pick_adr_commands(scalars: List[dict]) -> Tuple[Optional[int], Optional[int]]:
     adr_recv_total = 0; adr_recv_found = False
     for s in scalars:
@@ -481,7 +517,6 @@ def pick_adr_commands(scalars: List[dict]) -> Tuple[Optional[int], Optional[int]
                 except Exception: pass
     return (adr_recv_total if adr_recv_found else None, adr_sent_total if adr_sent_found else None)
 
-# ---- ToA estimation fallbacks ----
 def extract_node_index(mod: str) -> Optional[int]:
     m = NODE_INDEX_RX.search(mod or "")
     if not m: return None
@@ -513,13 +548,12 @@ def sent_packets_by_node(scalars: List[dict]) -> Dict[int, int]:
         elif "secondary" in d: out[node] = int(d["secondary"])
     return out
 
-# NEW: received-by-node from server counters "numReceivedFromNode <id>"
 def received_packets_by_node(scalars: List[dict]) -> Dict[int, int]:
     out: Dict[int, int] = {}
     for s in scalars:
         nm = str(s.get("name", "") or "")
         mod = str(s.get("module", "") or "")
-        if not SERVER_MOD.search(mod): 
+        if not SERVER_MOD.search(mod):
             continue
         if nm.startswith("numReceivedFromNode "):
             try:
@@ -639,7 +673,7 @@ def compute_toa_estimate_from_phy(params: List[dict], histograms: List[dict], sc
     return per_pkt * float(total_sent)
 
 # =============================================================================
-# Config analysis (same shape as Scenario-02)
+# Config analysis / printing
 # =============================================================================
 def extract_init_conditions(params: List[dict], scalars: List[dict]) -> Dict[str, Any]:
     init_conditions = {}
@@ -727,12 +761,9 @@ def analyze_config(bundle: Dict[str, Path], label: str) -> Dict[str, Any]:
 
     init_conditions = extract_init_conditions(params, scalars)
     print_init_conditions(label, init_conditions)
-    # expose sim time to the result row used by printers
     if "simTime_s" in init_conditions:
         res["SimTime_s"] = float(init_conditions["simTime_s"])
-        res["SimTime_min"] = float(
-            init_conditions.get("simTime_min", init_conditions["simTime_s"] / 60.0)
-        )
+        res["SimTime_min"] = float(init_conditions.get("simTime_min", init_conditions["simTime_s"] / 60.0))
 
     v = find_param_by_alias(params, PARAM_RX["nodes"])
     if v is not None: res["Nodes"] = int(parse_float_from_text(v) or 0)
@@ -761,7 +792,6 @@ def analyze_config(bundle: Dict[str, Path], label: str) -> Dict[str, Any]:
     if tr is not None: res["Total Received"] = int(tr)
     if res.get("Total Sent",0) > 0 and isinstance(res.get("Total Received"), int):
         res["Overall PDR (%)"] = 100.0 * res["Total Received"] / res["Total Sent"]
-        # NEW: Dropped
         res["Dropped"] = int(res["Total Sent"] - res["Total Received"])
 
     coll = pick_collisions(scalars)
@@ -787,7 +817,6 @@ def analyze_config(bundle: Dict[str, Path], label: str) -> Dict[str, Any]:
     else:
         res["Total ToA (s)"] = float(toa)
 
-    # NEW: Busy(%) = ToA / simTime * 100 (single-channel view)
     sim_time_s = init_conditions.get("simTime_s")
     if isinstance(res.get("Total ToA (s)"), (int,float)) and isinstance(sim_time_s, (int,float)) and sim_time_s > 0:
         res["Busy (%)"] = 100.0 * float(res["Total ToA (s)"]) / float(sim_time_s)
@@ -836,13 +865,12 @@ def analyze_config(bundle: Dict[str, Path], label: str) -> Dict[str, Any]:
             if rssi_med_v is not None: res["Median RSSI (dBm)"] = float(rssi_med_v)
 
     adr_recv, adr_sent = pick_adr_commands(scalars)
-    if adr_recv is not None: 
+    if adr_recv is not None:
         res["ADR Cmds (ED recv)"] = int(adr_recv)
         res["ADR Cmds"] = int(adr_recv)
-    if adr_sent is not None: 
+    if adr_sent is not None:
         res["ADR Cmds (NS sent)"] = int(adr_sent)
 
-    # NEW: per-node PDR stats
     sent_by_node = sent_packets_by_node(scalars)
     recv_by_node = received_packets_by_node(scalars)
     if sent_by_node:
@@ -867,15 +895,14 @@ def analyze_config(bundle: Dict[str, Path], label: str) -> Dict[str, Any]:
 
     return res
 
-# =============================================================================
-# Printing (context + scoreboard)
-# =============================================================================
 def fmt_num(x, digits=2):
     return f"{x:.{digits}f}" if isinstance(x, (int,float)) else "NA"
 
-def print_context_table(rows: List[Dict[str, Any]]) -> None:
+def print_context_table(rows: List[Dict[str, Any]], area: Optional[str]) -> None:
+    title = "SCENARIO 05 - OMNeT++ FLoRa ANALYSIS RESULTS (context)"
+    if area: title += f"  (area: {area})"
     print("\n" + "="*120)
-    print("SCENARIO 05 - OMNeT++ FLoRa ANALYSIS RESULTS (context)")
+    print(title)
     print("="*120)
     header = (
         "Configuration", "Nodes", "SimTime_s", "Interval_s", "ADR Enabled",
@@ -884,7 +911,6 @@ def print_context_table(rows: List[Dict[str, Any]]) -> None:
     fmt = "{:<40} {:>5} {:>10} {:>11} {:>11} {:>10} {:>17} {:>10} {:>10} {:>8}"
     print(fmt.format(*header))
 
-    # sort by interval if present
     def _key(r):
         v = r.get("Interval_s")
         try:
@@ -895,7 +921,6 @@ def print_context_table(rows: List[Dict[str, Any]]) -> None:
     for r in sorted(rows, key=_key):
         sent = r.get("Total Sent")
         recv = r.get("Total Received")
-        # use precomputed PDR if present, else compute defensively
         pdr = r.get("Overall PDR (%)")
         if pdr is None and isinstance(sent, (int, float)) and isinstance(recv, (int, float)) and sent > 0:
             pdr = 100.0 * float(recv) / float(sent)
@@ -915,78 +940,25 @@ def print_context_table(rows: List[Dict[str, Any]]) -> None:
         print(fmt.format(*row))
     print("="*120)
 
-
-def print_scoreboard_multi(rows: List[Dict[str, Any]]) -> None:
-    # Extended scoreboard to include missing metrics
-    keys = [
-        "Total Sent", "Total Received", "Dropped", "Overall PDR (%)",
-        "AvgMsgs/Node", "Low-PDR (<80%)", "PDR min (%)", "PDR med (%)", "PDR max (%)",
-        "Busy (%)",
-        "Collisions", "GW Rx Started", "GW Rx OK", "GW RxOK (%)",
-        "Total ToA (s)", "Mean SF", "SF7-9 (%)", "SF10-12 (%)",
-        "Mean SNIR (dB)", "Median SNIR (dB)",
-        "Mean RSSI (dBm)", "Median RSSI (dBm)",
-        "ADR Cmds", "ADR Cmds (ED recv)", "ADR Cmds (NS sent)"
-    ]
-    labels = {
-        "Total Sent":"Total Sent",
-        "Total Received":"Total Received",
-        "Dropped":"Dropped",
-        "Overall PDR (%)":"PDR (%)",
-        "AvgMsgs/Node":"AvgMsgs/Node",
-        "Low-PDR (<80%)":"Low-PDR (<80%)",
-        "PDR min (%)":"PDR min (%)",
-        "PDR med (%)":"PDR med (%)",
-        "PDR max (%)":"PDR max (%)",
-        "Busy (%)":"Busy (%)",
-        "Collisions":"Collisions",
-        "GW Rx Started":"GW Rx Started",
-        "GW Rx OK":"GW Rx OK",
-        "GW RxOK (%)":"RxOK (%)",
-        "Total ToA (s)":"Total ToA (s)",
-        "Mean SF":"Mean SF",
-        "SF7-9 (%)":"SF7-9 (%)",
-        "SF10-12 (%)":"SF10-12 (%)",
-        "Mean SNIR (dB)":"Mean SNIR (dB)",
-        "Median SNIR (dB)":"Median SNIR (dB)",
-        "Mean RSSI (dBm)":"Mean RSSI (dBm)",
-        "Median RSSI (dBm)":"Median RSSI (dBm)",
-        "ADR Cmds":"ADR Cmds",
-        "ADR Cmds (ED recv)":"ADR Cmds (ED recv)",
-        "ADR Cmds (NS sent)":"ADR Cmds (NS sent)",
-    }
-    print("\n" + "="*120)
-    print("SCENARIO 01 - Scoreboard (per configuration)")
-    print("="*120)
-    for r in rows:
-        print(f"\n[{r.get('Configuration','')}]")
-        for k in keys:
-            print(f"  {labels[k]:<20}: {fmt_num(r.get(k))}")
-    print("="*120)
-
-def print_common_scoreboard(rows, title="SCENARIO 05 — Unified Scoreboard"):
-    # dynamic width for the long 'Configuration' names
+def print_common_scoreboard(rows, area: Optional[str], title="SCENARIO 05 — Unified Scoreboard"):
     conf_w = max(28, min(64, max(len(r.get("Configuration","")) for r in rows)))
+    title2 = title + (f"  (area: {area})" if area else "")
     hdr = ("Configuration", "Nodes", "Interval_s", "SimTime_min", "Sent", "Received", "Dropped", "PDR(%)")
-
-    # build a format string using the dynamic width
     fmt = (
-        f"{{:<{conf_w}}} "   # Configuration (left)
-        f"{{:>5}} "          # Nodes
-        f"{{:>11}} "         # Interval_s
-        f"{{:>12}} "         # SimTime_min
-        f"{{:>8}} "          # Sent
-        f"{{:>9}} "          # Received
-        f"{{:>8}} "          # Dropped
-        f"{{:>7}}"           # PDR(%)
+        f"{{:<{conf_w}}} "
+        f"{{:>5}} "
+        f"{{:>11}} "
+        f"{{:>12}} "
+        f"{{:>8}} "
+        f"{{:>9}} "
+        f"{{:>8}} "
+        f"{{:>7}}"
     )
-
-    # header & divider sized to the real row width
     header_line = fmt.format(*hdr)
     divider = "-" * len(header_line)
 
     print("\n" + "=" * len(header_line))
-    print(title)
+    print(title2)
     print("=" * len(header_line))
     print(header_line)
     print(divider)
@@ -1014,14 +986,15 @@ def print_common_scoreboard(rows, title="SCENARIO 05 — Unified Scoreboard"):
 
     print("=" * len(header_line))
 
-
 # =============================================================================
 # Main
 # =============================================================================
 def main():
-    ap = argparse.ArgumentParser(description="Analyze OMNeT++/FLoRa Scenario 05 (Baseline variants)")
+    ap = argparse.ArgumentParser(description="Analyze OMNeT++/FLoRa Scenario 05 (Baseline variants) – area aware")
     ap.add_argument("--json-dir", type=Path, default=Path("json_exports"),
                     help="Directory with exported JSON files")
+    ap.add_argument("--area", type=str, default=None,
+                    help="Area tag to filter results (e.g. 1x1km, 2x2km, 1km). Matches *_<area>.*")
     ap.add_argument("--dump-keys", type=Path, default=None,
                     help="Save used keys to this JSON file")
     args = ap.parse_args()
@@ -1030,34 +1003,42 @@ def main():
         print(f"JSON directory not found: {args.json_dir}")
         print_used_keys()
         if args.dump_keys: dump_used_keys(args.dump_keys)
-        return
+        sys.exit(2)
 
-    print(f"Searching for scenario files in: {args.json_dir}")
-    bundles = find_all_bundles_s01(args.json_dir)
+    area = args.area.strip() if args.area else None
+    print(f"Searching for scenario-05 files in: {args.json_dir}")
+    if area:
+        print(f"Filtering by area tag(s): {', '.join(_area_token_variants(area))}")
+
+    bundles = find_all_bundles_s05(args.json_dir, area)
     if not bundles:
-        print("No Scenario-05 bundles found (looked for 'scenario-05' + 'baseline' + '-s#').")
+        msg = "No Scenario-05 bundles found"
+        if area: msg += f" for area '{area}'"
+        msg += " (looked for 'scenario-05' + 'baseline' + '-s#')."
+        print(msg)
         print_used_keys()
         if args.dump_keys: dump_used_keys(args.dump_keys)
-        return
+        sys.exit(2)
 
     results: List[Dict[str, Any]] = []
     for label, bundle in bundles:
         results.append(analyze_config(bundle, label))
+
     common_rows = []
     for r in results:
         sent = int(r.get("Total Sent", 0))
-        recv = int(r.get("Total Received", 0))
+        recv = int(r.get("Total Received", 0)) if isinstance(r.get("Total Received"), (int,float)) else 0
         drop = max(0, sent - recv)
         pdr = r.get("Overall PDR (%)")
         if pdr is None and sent > 0:
             pdr = 100.0 * recv / sent
         sim_s = r.get("SimTime_s")
         sim_min = (sim_s / 60.0) if isinstance(sim_s, (int,float)) else None
-        nodes = r.get("Nodes")  # already extracted in analyze_config()
+        nodes = r.get("Nodes")
 
         common_rows.append({
             "Configuration": r.get("Configuration",""),
-            "Nodes": int(nodes) if isinstance(nodes,(int,float)) else None,  # <-- NEW
+            "Nodes": int(nodes) if isinstance(nodes,(int,float)) else None,
             "Interval_s": int(r["Interval_s"]) if isinstance(r.get("Interval_s"), (int,float)) else None,
             "SimTime_min": sim_min,
             "Sent": sent,
@@ -1070,14 +1051,13 @@ def main():
         print("No valid results to analyze.")
         print_used_keys()
         if args.dump_keys: dump_used_keys(args.dump_keys)
-        return
+        sys.exit(2)
 
     # Context table
-    print_context_table(results)
+    print_context_table(results, area)
 
     # Scoreboard
-    # print_scoreboard_multi(results)
-    print_common_scoreboard(common_rows)
+    print_common_scoreboard(common_rows, area)
 
     # Keys used
     print_used_keys()

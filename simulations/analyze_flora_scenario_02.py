@@ -5,6 +5,7 @@
 # - Tracks and prints exact keys used; optional --dump-keys to save them
 # - NEW: Prints initialization conditions from JSON parameters
 # - Plain ASCII output (no emojis)
+# - UPDATED: Added --area filtering support
 
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple, Iterable
@@ -62,11 +63,45 @@ def dump_used_keys(path: Path) -> None:
     print(f"[keys] Saved to: {path}")
 
 # =============================================================================
+# Area filtering helpers (same as scenario 08)
+# =============================================================================
+def _area_aliases(area: str) -> set[str]:
+    """Allow '1x1km' and its '1km' alias (common in your file names)."""
+    a = area.lower().strip().strip("_- ")
+    aliases = {a}
+    if "x" in a and a.endswith("km"):
+        first = a.split("x", 1)[0]  # '1x1km' -> '1'
+        aliases.add(f"{first}km")   # accept '_1km' too
+    return aliases
+
+def name_matches_area(filename: str, area: str | None) -> bool:
+    """True if filename matches requested area (or no area requested)."""
+    if not area:
+        return True
+    n = filename.lower()
+    for alias in _area_aliases(area):
+        if f"_{alias}" in n:       # we require the explicit suffix pattern
+            return True
+    return False
+
+# =============================================================================
 # JSON helpers
 # =============================================================================
 def read_json(path: Path) -> Any:
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"ERROR: Invalid JSON in file: {path}")
+        print(f"  JSON Error: {e}")
+        print(f"  Line {e.lineno}, Column {e.colno}")
+        print(f"  Skipping this file...")
+        return {}
+    except Exception as e:
+        print(f"ERROR: Could not read file: {path}")
+        print(f"  Error: {e}")
+        print(f"  Skipping this file...")
+        return {}
 
 def _get_block(obj: Any, key: str) -> Optional[dict]:
     if isinstance(obj, dict):
@@ -137,13 +172,15 @@ def parse_bool_text(s: str) -> Optional[bool]:
     return None
 
 # =============================================================================
-# File discovery
+# File discovery (updated to support area filtering)
 # =============================================================================
-def find_bundle(json_dir: Path, patterns: List[str]) -> Dict[str, Path]:
+def find_bundle(json_dir: Path, patterns: List[str], area: str | None = None) -> Dict[str, Path]:
     pats = [p.lower() for p in patterns]
     out: Dict[str, Path] = {}
     for p in json_dir.glob("*.json"):
         name = p.name.lower()
+        if not name_matches_area(p.name, area):
+            continue
         if all(sub in name for sub in pats):
             if "parameters" in name and "parameters" not in out: out["parameters"] = p
             elif "scalars" in name and "scalars" not in out: out["scalars"] = p
@@ -993,6 +1030,8 @@ def main():
                     help="Directory with exported JSON files")
     ap.add_argument("--dump-keys", type=Path, default=None,
                     help="Save used keys to this JSON file")
+    ap.add_argument("--area", type=str, default=None,
+                    help="Area suffix to filter files by (e.g. 1x1km, 2x2km, 3x3km).")
     args = ap.parse_args()
 
     if not args.json_dir.exists():
@@ -1002,9 +1041,11 @@ def main():
         return
 
     print(f"Searching for scenario files in: {args.json_dir}")
+    if args.area:
+        print(f"Filtering by area: {args.area}")
 
-    adr_bundle   = find_bundle(args.json_dir, ["scenario-02", "adr-enabled"])
-    fixed_bundle = find_bundle(args.json_dir, ["scenario-02", "fixed", "sf12"])
+    adr_bundle   = find_bundle(args.json_dir, ["scenario-02", "adr-enabled"], area=args.area)
+    fixed_bundle = find_bundle(args.json_dir, ["scenario-02", "fixed", "sf12"], area=args.area)
 
     results: List[Dict[str, Any]] = []
 

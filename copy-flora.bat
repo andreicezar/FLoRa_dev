@@ -190,6 +190,18 @@ if exist "!SRC_SCRIPT2!" (
 ) else (
     echo [WARNING] Script not found: complete_export_all_scenarios.sh, skipping.
 )
+set "SRC_SCRIPT2=%SRC_SIM_DIR%\run_all_flora_analyzers.sh"
+if exist "!SRC_SCRIPT2!" (
+    copy /Y "!SRC_SCRIPT2!" "%DEST_SIM%\" >nul
+    if errorlevel 1 (
+        echo [ERROR] Failed to copy run_all_flora_analyzers.sh
+    ) else (
+        echo [OK] Copied run_all_flora_analyzers.sh
+    )
+) else (
+    echo [WARNING] Script not found: run_all_flora_analyzers.sh, skipping.
+)
+
 REM ======================== NEW SECTION END ========================
 
 REM ===== 6) COPY PYTHON SCRIPTS =====

@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-OMNeT++ FLoRa — Scenario 06 (Collision / Capture) Analyzer
+OMNeT++ FLoRa — Scenario 06 (Collision / Capture) Analyzer — AREA-AWARE
 
 What this does:
+- Adds --area filtering (e.g., 1x1km..5x5km). Also accepts compact aliases like _1km.
 - Positions: parameters-first (supports both classic module+name and "full-path key" entries),
   with scalar fallback. Works with keys like {"**.loRaNodes[0].**.initialX": "143.29m"}.
 - Near/Far cohorts by distance quartiles; CaptureΔ = NearPDR − FarPDR.
@@ -12,7 +13,7 @@ What this does:
 - Optional: --print-positions dumps all GW and node XY for each run.
 
 Usage:
-  python3 analyze_flora_scenario_06.py --json-dir json_exports
+  python3 analyze_flora_scenario_06.py --json-dir json_exports --area 1x1km
   python3 analyze_flora_scenario_06.py --json-dir json_exports --print-positions
 """
 
@@ -63,26 +64,79 @@ def parse_time_seconds(v) -> Optional[float]:
     if unit in ("h","hr","hour","hours"): return val*3600.0
     return None
 
+# =============================================================================
+# Area filtering helpers (same style as scenario 08)
+# =============================================================================
+def _area_aliases(area: str) -> set[str]:
+    """
+    Accept '1x1km' plus compact alias '1km' (since your files sometimes use _1km).
+    """
+    a = area.lower().strip().strip("_- ")
+    aliases = {a}
+    if "x" in a and a.endswith("km"):
+        first = a.split("x", 1)[0]  # '1x1km' -> '1'
+        aliases.add(f"{first}km")
+    return aliases
+
+def name_matches_area(filename: str, area: Optional[str]) -> bool:
+    """
+    True if filename matches requested area (or no area requested).
+    We check for substrings like '_1x1km' OR '_1km'.
+    """
+    if not area:
+        return True
+    n = filename.lower()
+    for alias in _area_aliases(area):
+        if f"_{alias}" in n:
+            return True
+    return False
+
 # -------------------------
-# Bundle discovery
+# Bundle discovery (AREA-AWARE)
 # -------------------------
-def find_bundles(json_dir: Path) -> List[Tuple[str, Dict[str, Path]]]:
+def find_bundles(json_dir: Path, area: Optional[str]) -> List[Tuple[str, Dict[str, Path]]]:
+    """
+    Discover Scenario-06 collision bundles, filtered by --area.
+    A "base" is the common prefix of the 4 JSON files (parameters/scalars/ histograms/vectors),
+    possibly including the area suffix (e.g., ...-s0_1x1km).
+    """
     bases = set()
     for p in json_dir.glob("*.json"):
-        name = p.name.lower()
-        if "scenario-06" in name and "collision" in name and re.search(r"-s\d+", name):
-            base = re.sub(r"_(parameters|scalars|histograms|statistics|vectors|app_vectors)\.json$", "", p.name, flags=re.I)
+        low = p.name.lower()
+        if "scenario-06" in low and "collision" in low and re.search(r"-s\d+", low):
+            if not name_matches_area(p.name, area):
+                continue
+            # strip trailing "_<type>.json" and optional "_<area>"
+            base = re.sub(
+                r"_(?:[0-9]+x[0-9]+km|[0-9]+km)?_(parameters|scalars|histograms|statistics|vectors|app_vectors)\.json$",
+                "",
+                p.name,
+                flags=re.I,
+            )
+            # If the above didn't match (some exporters omit area), fall back to just stripping the type
+            base = re.sub(
+                r"_(parameters|scalars|histograms|statistics|vectors|app_vectors)\.json$",
+                "",
+                base,
+                flags=re.I,
+            )
             bases.add(base)
+
     out: List[Tuple[str, Dict[str, Path]]] = []
     for base in sorted(bases):
         toks = [t for t in base.lower().split("-") if t]
         bundle: Dict[str, Path] = {}
         for p in json_dir.glob("*.json"):
             low = p.name.lower()
+            if not name_matches_area(p.name, area):
+                continue
+            # must contain all base tokens (robust match)
             if all(t in low for t in toks):
                 if "parameters" in low and "parameters" not in bundle: bundle["parameters"] = p
                 elif "scalars" in low and "scalars" not in bundle: bundle["scalars"] = p
                 elif ("app_vectors" in low or "vectors" in low) and "vectors" not in bundle: bundle["vectors"] = p
+                elif ("histograms" in low or "statistics" in low) and "histograms" not in bundle: bundle["histograms"] = p
+        # require at least params + scalars
         if bundle.get("parameters") and bundle.get("scalars"):
             out.append((base, bundle))
     return out
@@ -107,11 +161,9 @@ def iter_param_kv(parameters: List[dict]):
 # -------------------------
 # Position extraction
 # -------------------------
-# Accept loRaNodes[i] and GWs in module paths (no word boundaries)
 NODE_IN_MODULE_RX = re.compile(r"loRaNodes\[(\d+)\]", re.I)
 GW_IN_MODULE_RX   = re.compile(r"loRaGW(?:\[\d+\])?|loRaGWs\[\d+\]", re.I)
 
-# Accept one-key dict keys like "**.loRaNodes[0].**.initialX"
 PARAM_NODE_KV_RX = re.compile(
     r"loRaNodes\[(\d+)\].*?\.(initialX|initialY|positionX|positionY|posX|posY|x|y)",
     re.I,
@@ -124,7 +176,6 @@ PARAM_GW_KV_RX = re.compile(
 POS_NAME_SET = {"initialx","initialy","positionx","positiony","posx","posy","x","y"}
 
 def extract_node_positions(parameters: List[dict], scalars: List[dict]) -> Dict[int, Tuple[float,float]]:
-    """Parameters-first, supports both classic module+name and full-path key entries. Falls back to scalars."""
     posx: Dict[int, float] = {}
     posy: Dict[int, float] = {}
 
@@ -276,6 +327,10 @@ def infer_sf(label: str, parameters: List[dict]) -> Optional[int]:
 # Analyze one bundle
 # -------------------------
 def analyze_one(label: str, bundle: Dict[str, Path], print_positions: bool) -> Dict[str, Any]:
+    print(f"\n=== ANALYZING: {label} ===")
+    for file_type, path in bundle.items():
+        print(f"  Reading {file_type}: {path.name}")
+
     params  = list_in(read_json(bundle["parameters"]), "parameters")
     scalars = list_in(read_json(bundle["scalars"]), "scalars")
 
@@ -296,7 +351,7 @@ def analyze_one(label: str, bundle: Dict[str, Path], print_positions: bool) -> D
 
     sf = infer_sf(label, params)
 
-    # Totals (robust): take max across candidates; prefer server-deduped receive counts
+    # Totals (robust)
     sent_by_node = sent_by_node_from_scalars(scalars)
     recv_by_node = recv_by_node_from_scalars(scalars)
 
@@ -309,7 +364,6 @@ def analyze_one(label: str, bundle: Dict[str, Path], print_positions: bool) -> D
             sent_candidates.append(int(v))
     sent_total = max(sent_candidates) if sent_candidates else 0
 
-    # Receive candidates, ordered by "most deduped" to "least deduped"
     recv_candidates: List[int] = []
     if recv_by_node:
         recv_candidates.append(int(sum(recv_by_node.values())))
@@ -317,18 +371,15 @@ def analyze_one(label: str, bundle: Dict[str, Path], print_positions: bool) -> D
         v = pick_scalar(scalars, [name])
         if v is not None:
             recv_candidates.append(int(v))
-    # GW RxOK is a last resort (can be per-GW, not server-deduped)
     v_rxok = pick_scalar(scalars, ["LoRaGWRadioReceptionFinishedCorrect:count"])
     if v_rxok is not None:
         recv_candidates.append(int(v_rxok))
     recv_total = max(recv_candidates) if recv_candidates else 0
 
-    # Estimate per-node sent uniformly if missing (Scenario 06 uses same interval per node)
     if (not sent_by_node) and nodes_val and sent_total:
         msgs_per_node = int(round(sent_total / float(nodes_val)))
         sent_by_node = {n: msgs_per_node for n in range(nodes_val)}
 
-    # Guard: never let Sent be lower than Recv (partial exports etc.)
     if sent_total < recv_total:
         sent_total = recv_total
 
@@ -341,11 +392,10 @@ def analyze_one(label: str, bundle: Dict[str, Path], print_positions: bool) -> D
     pdr = (100.0 * recv_total / sent_total) if sent_total else 0.0
     if pdr > 100.0: pdr = 100.0
 
-    # Positions
+    # Positions & capture
     node_pos = extract_node_positions(params, scalars)     # {node: (x,y)}
     gw_xy    = extract_gateway_xy(params, scalars)         # (x,y) or None
 
-    # Debug print positions
     if print_positions:
         print(f"\n[{label}] POSITIONS DEBUG")
         if gw_xy:
@@ -359,7 +409,6 @@ def analyze_one(label: str, bundle: Dict[str, Path], print_positions: bool) -> D
         else:
             print("  Nodes: NONE FOUND")
 
-    # Cohorts by distance (NEAR=closest 25%, FAR=farthest 25%)
     near_pdr = far_pdr = cap_delta = None
     if gw_xy and node_pos and sent_by_node:
         gx, gy = gw_xy
@@ -417,9 +466,12 @@ def fmt(x, d=2):
     try: return f"{float(x):.{d}f}"
     except: return str(x)
 
-def print_scoreboard(rows: List[Dict[str, Any]]):
+def print_scoreboard(rows: List[Dict[str, Any]], area: Optional[str]):
+    title = "OMNeT++ FLoRa — Scenario 06 (Collision / Capture) — SCOREBOARD"
+    if area:
+        title += f"  (area: {area})"
     print("\n" + "="*120)
-    print("OMNeT++ FLoRa — Scenario 06 (Collision / Capture) — SCOREBOARD")
+    print(title)
     print("="*120)
     header = ("Config","SF","Nodes","Int(s)","Sim(min)","Sent","Recv","Drop","PDR(%)",
               "NearPDR(%)","FarPDR(%)","CaptureΔ(%)","RxOk","Collisions","UnderSens","RxUtil(%)","RxIdle(%)")
@@ -451,23 +503,27 @@ def print_scoreboard(rows: List[Dict[str, Any]]):
 # Main
 # -------------------------
 def main():
-    ap = argparse.ArgumentParser(description="Analyze OMNeT++/FLoRa Scenario 06 (Collision / Capture)")
+    ap = argparse.ArgumentParser(description="Analyze OMNeT++/FLoRa Scenario 06 (Collision / Capture) — area-aware")
     ap.add_argument("--json-dir", type=Path, default=Path("json_exports"))
+    ap.add_argument("--area", type=str, default=None,
+                    help="Area suffix to filter files by (e.g. 1x1km, 2x2km). Also accepts alias _1km etc.")
     ap.add_argument("--print-positions", action="store_true", help="Print all GW and node positions per run")
     args = ap.parse_args()
 
     if not args.json_dir.exists():
         print(f"[error] JSON dir not found: {args.json_dir}"); return
 
-    bundles = find_bundles(args.json_dir)
+    bundles = find_bundles(args.json_dir, args.area)
     if not bundles:
-        print("[warn] No scenario-06 collision bundles found."); return
+        print("[warn] No scenario-06 collision bundles found for requested area." if args.area
+              else "[warn] No scenario-06 collision bundles found.")
+        return
 
     rows = []
     for label, bundle in bundles:
         rows.append(analyze_one(label, bundle, print_positions=args.print_positions))
 
-    print_scoreboard(rows)
+    print_scoreboard(rows, args.area)
 
 if __name__ == "__main__":
     main()
