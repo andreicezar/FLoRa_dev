@@ -4,6 +4,7 @@
 # - Default: run each scenario, then export {scalars, parameters, histograms, app vectors}
 # - --export=false / --no-export: skip exports
 # - --scenario <N|name|ini|scenario-XX>: run/export a single INI or ALL sub-scenarios of scenario-XX
+# - NEW: -h/--help and --list
 
 set -euo pipefail
 
@@ -181,20 +182,72 @@ declare -A NAME_HINT=(
   [32]="4gw"
 )
 
+# ---------- Help / List ----------
+print_help() {
+  cat <<'EOF'
+Usage:
+  ./integrated_run_and_export.sh [OPTIONS]
+  ./integrated_run_and_export.sh --scenario <selector>
+  ./integrated_run_and_export.sh --list
+
+Description:
+  Runs FLoRa OMNeT++ scenarios and exports results to JSON, skipping empty exports.
+  It prints counts and file sizes for scalars, parameters, histograms, and vectors (**.app[*]).
+
+Selectors for --scenario/-s:
+  - Numeric index: 1..N (stable across edits)
+  - INI filename: exact match from the inventory arrays
+  - Fuzzy name: substring of the INI name or hint (e.g., "sf7-fixed", "confirmed")
+  - Scenario group: "scenario-XX" to run ALL INIs of a group (e.g., scenario-03)
+
+Options:
+  -s, --scenario <selector>   Run/export a single scenario or a whole scenario group
+      --no-export             Skip exports (same as --export=false)
+      --export=<true|false>   Control exporting explicitly (default: true)
+      --list                  Show all selectable scenarios (index, INI, hint)
+  -h, --help                  Show this help and exit
+
+Environment:
+  - Requires opp_run and opp_scavetool in PATH.
+  - Uses relative NED path and loads FLoRa + INET libs.
+
+Examples:
+  # Run all scenarios and export JSON
+  ./integrated_run_and_export.sh
+
+  # Run only scenario 03 group (all SF-fixed variants)
+  ./integrated_run_and_export.sh -s scenario-03
+
+  # Run by stable index (here: omnetpp-scenario-03-sf7-fixed.ini)
+  ./integrated_run_and_export.sh -s 11
+
+  # Run by fuzzy name
+  ./integrated_run_and_export.sh --scenario sf7-collision
+
+  # Run a single INI without exporting
+  ./integrated_run_and_export.sh -s omnetpp-scenario-04-confirmed.ini --no-export
+EOF
+}
+
+list_scenarios() {
+  printf "EXTRA (run first):\n"
+  for ini in "${EXTRA_SCENARIOS_FIRST[@]}"; do
+    printf "  [X1] %s\n" "$ini"
+  done
+  printf "\nMAIN scenarios:\n"
+  local i=1
+  for ini in "${SCENARIOS[@]}"; do
+    printf "  [%02d] %-40s  hint:%s  prefix:%s\n" \
+      "$i" "$ini" "${NAME_HINT[$i]-"-"}" "${RESULT_PREFIX[$ini]-"-"}"
+    i=$((i+1))
+  done
+}
+
 # ---------- Args
 DO_EXPORT=true
 SCENARIO_ARG=""
-parse_bool(){ case "$(echo "${1:-}"|tr '[:upper:]' '[:lower:]')" in 0|false|no)echo false;; 1|true|yes)echo true;; *)echo false;; esac; }
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --no-export) DO_EXPORT=false; shift ;;
-    --export=*)  DO_EXPORT="$(parse_bool "${1#*=}")"; shift ;;
-    --scenario|-s) SCENARIO_ARG="${2:-}"; shift 2 ;;
-    *) if [[ -z "$SCENARIO_ARG" ]]; then SCENARIO_ARG="$1"; shift; else echo "Unknown arg: $1"; exit 2; fi ;;
-  esac
-done
 
-# ---------- Helpers
+parse_bool(){ case "$(echo "${1:-}"|tr '[:upper:]' '[:lower:]')" in 0|false|no)echo false;; 1|true|yes)echo true;; *)echo false;; esac; }
 lower(){ echo "$*" | tr '[:upper:]' '[:lower:]'; }
 
 # Return all INIs belonging to a whole scenario group (scenario-XX)
@@ -219,7 +272,6 @@ resolve_scenarios_group(){
 
   ((${#out[@]})) && printf '%s\n' "${out[@]}" || return 1
 }
-
 
 resolve_scenario_ini(){
   local sel="$(lower "$1")"
@@ -259,6 +311,20 @@ latest_result_base(){   # basename (no extension) for newest matching prefix
 }
 
 file_size(){ local f="$1"; [[ -f "$f" ]] && ls -lh "$f" | awk '{print $5}' || echo "0B"; }
+
+# Parse CLI
+if [[ $# -gt 0 ]]; then
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -h|--help) print_help; exit 0 ;;
+      --list) list_scenarios; exit 0 ;;
+      --no-export) DO_EXPORT=false; shift ;;
+      --export=*)  DO_EXPORT="$(parse_bool "${1#*=}")"; shift ;;
+      --scenario|-s) SCENARIO_ARG="${2:-}"; shift 2 ;;
+      *) if [[ -z "$SCENARIO_ARG" ]]; then SCENARIO_ARG="$1"; shift; else echo "Unknown arg: $1"; exit 2; fi ;;
+    esac
+  done
+fi
 
 # ---------- Core functions
 run_scenario(){
@@ -376,8 +442,10 @@ echo "NED path: $NED_PATH"
 echo ""
 
 if [[ -n "${SCENARIO_ARG:-}" ]]; then
-  # First: does it refer to a whole scenario group (e.g., "scenario-01")?
-  if mapfile -t MANY < <(resolve_scenarios_group "$SCENARIO_ARG"); then
+  # Try scenario GROUP only if it actually returns at least one INI
+  tmp_group="$(resolve_scenarios_group "$SCENARIO_ARG" || true)"
+  if [[ -n "$tmp_group" ]]; then
+    mapfile -t MANY <<< "$tmp_group"
     echo "Resolved group '${SCENARIO_ARG}' -> ${#MANY[@]} INIs"
     for ini in "${MANY[@]}"; do
       run_scenario "$ini"
@@ -392,7 +460,6 @@ if [[ -n "${SCENARIO_ARG:-}" ]]; then
   if $DO_EXPORT; then export_scenario "$ini"; fi
   exit 0
 fi
-
 
 # Run the EXTRA first (n1000-gw1-ADR.ini), then the standard list
 for ini in "${EXTRA_SCENARIOS_FIRST[@]}"; do
