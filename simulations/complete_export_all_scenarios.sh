@@ -1,131 +1,158 @@
 #!/usr/bin/env bash
-# Export all JSON variants for a given scenario RUN, auto-detecting result base.
-# Usage:
-#   ./complete_export_all_scenarios.sh examples/omnetpp-scenario-05-high-traffic.ini
-#   ./complete_export_all_scenarios.sh scenario-05-high-traffic-s0
-#   ./complete_export_all_scenarios.sh scenario-05-high-traffic
-
+# Export JSON for OMNeT++ results.
+# Modes:
+#   1) No args                  => export ALL .sca/.vec found recursively
+#   2) <path/to/file.ini>       => export ONLY newest .sca/.vec for that INI
+#   3) <prefix>                 => export ONLY newest .sca/.vec for that prefix
 set -euo pipefail
 
-SIM_DIR="$(cd "$(dirname "$0")" && pwd)"
-EXAMPLES_DIR="$SIM_DIR/examples"
+SIM_DIR="$(cd "$(dirname "$0")" && pwd)"   # .../flora/simulations
 RESULTS_DIR="$SIM_DIR/results"
-OUTPUT_DIR="$SIM_DIR/json_exports"
+ALT_RESULTS_DIR="$SIM_DIR/examples/results"
+OUTPUT_DIR_WIN='D:\Doctorat\anul_2\apps\FLoRa_development\flora\simulations\json_exports'
+if command -v cygpath >/dev/null 2>&1; then
+  OUTPUT_DIR="$(cygpath -u "$OUTPUT_DIR_WIN")"
+else
+  OUTPUT_DIR="$OUTPUT_DIR_WIN"
+fi
 mkdir -p "$OUTPUT_DIR"
 
-ARG="${1:-}"
-if [[ -z "$ARG" ]]; then
-  echo "Usage: $0 <ini | base | base-with-run>"
-  exit 2
-fi
+echo "=== JSON Export ==="
+echo "SIM_DIR     : $SIM_DIR"
+echo "RESULTS_DIR : $RESULTS_DIR"
+echo "ALT_RESULTS : $ALT_RESULTS_DIR"
+echo "OUTPUT_DIR  : $OUTPUT_DIR"
+echo ""
 
-detect_result_prefix_from_ini(){
-  local ini="$1" ini_path="$ini"
-  [[ -f "$ini_path" ]] || ini_path="$EXAMPLES_DIR/$ini"
-  [[ -f "$ini_path" ]] || { echo ""; return 1; }
-  local line
-  line="$(grep -E '^[[:space:]]*output-vector-file[[:space:]]*=' "$ini_path" || true)"
-  [[ -z "$line" ]] && line="$(grep -E '^[[:space:]]*output-scalar-file[[:space:]]*=' "$ini_path" || true)"
+command -v opp_scavetool >/dev/null 2>&1 || { echo "❌ opp_scavetool not in PATH"; exit 1; }
+
+# -------- helpers --------
+detect_result_prefix_from_ini() {
+  local ini="$1" line path base
+  [[ -f "$ini" ]] || { echo ""; return 1; }
+
+  # Prefer vector, else scalar
+  line="$(grep -m1 -E '^[[:space:]]*output-vector-file[[:space:]]*=' "$ini" || true)"
+  if [[ -z "$line" ]]; then
+    line="$(grep -m1 -E '^[[:space:]]*output-scalar-file[[:space:]]*=' "$ini" || true)"
+  fi
   [[ -z "$line" ]] && { echo ""; return 1; }
-  local path; path="$(echo "$line" | sed -E 's/^[[:space:]]*output-(vector|scalar)-file[[:space:]]*=[[:space:]]*//; s/[[:space:]]*$//; s/^"//; s/"$//')"
-  local base; base="$(basename "$path")"
-  base="${base%-s\${runnumber}.vec}"
-  base="${base%-s\${runnumber}.sca}"
+
+  # Strip key, quotes, trailing spaces; normalize slashes
+  path="$(echo "$line" | sed -E \
+          -e 's/^[[:space:]]*output-(vector|scalar)-file[[:space:]]*=[[:space:]]*//' \
+          -e 's/[[:space:]]*$//' \
+          -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")"
+  path="${path//\\//}"
+
+  # File basename without extension, e.g. scenario-08-baseline-2gw-s${runnumber}_1km
+  base="$(basename "$path")"
   base="${base%.vec}"
   base="${base%.sca}"
+
+  # --- CRUCIAL STEP ---
+  # Cut at the first occurrence of "-s${" (drop runnumber var and anything after: } or suffixes like _1km)
+  if [[ "$base" == *"-s\${"* ]]; then
+    base="${base%%-s\$\{*}"
+  fi
+
+  # Also handle the rare case of explicit numeric runnumber inside ini (e.g. "-s0")
+  # Keep only the part before the first "-s" followed by digits
+  if [[ "$base" =~ ^(.+)-s[0-9]+.*$ ]]; then
+    base="${BASH_REMATCH[1]}"
+  fi
+
+  # Final cleanup of stray braces if any
+  base="${base//\}/}"
+
   echo "$base"
 }
 
-latest_result_base(){   # basename (no extension) for newest matching prefix
-  local prefix="$1" ext="$2" newest=""
-  newest=$(ls -1t "$RESULTS_DIR/${prefix}-s*.$ext" 2>/dev/null | head -1 || true)
-  [[ -z "$newest" ]] && newest=$(ls -1t "$RESULTS_DIR/${prefix}.$ext" 2>/dev/null | head -1 || true)
-  [[ -z "$newest" ]] && newest=$(ls -1t "$RESULTS_DIR/${prefix}"*".$ext" 2>/dev/null | head -1 || true)
-  [[ -n "$newest" ]] && { newest="${newest%.*}"; basename "$newest"; } || echo ""
+
+latest_result_base_in_root() {
+  local prefix="$1" ext="$2" root="$3" newest=""
+  [[ -d "$root" ]] || { echo ""; return 0; }
+  newest=$(find "$root" -type f -name "${prefix}-s*.${ext}" -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -1 | awk '{sub(/^[0-9.]+ /,"");print}' || true)
+  [[ -z "$newest" ]] && newest=$(find "$root" -type f -name "${prefix}.${ext}"     -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -1 | awk '{sub(/^[0-9.]+ /,"");print}' || true)
+  [[ -z "$newest" ]] && newest=$(find "$root" -type f -name "${prefix}*.${ext}"    -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -1 | awk '{sub(/^[0-9.]+ /,"");print}' || true)
+  [[ -n "$newest" ]] && { newest="${newest%.*}"; echo "$newest"; } || echo ""
 }
 
-# Resolve base
-BASE=""
-if [[ "$ARG" == *.ini ]]; then
-  BASE="$(detect_result_prefix_from_ini "$ARG")"
-else
-  BASE="${ARG%-s*}"   # if user passed "...-s0", trim run suffix
-fi
-if [[ -z "$BASE" ]]; then
-  echo "Could not determine result base from '$ARG'"; exit 2
-fi
+latest_result_base_any() {
+  local prefix="$1" ext="$2" base=""
+  base="$(latest_result_base_in_root "$prefix" "$ext" "$RESULTS_DIR")"
+  [[ -z "$base" ]] && base="$(latest_result_base_in_root "$prefix" "$ext" "$ALT_RESULTS_DIR")"
+  echo "$base"
+}
 
-BASE_USE="$(latest_result_base "$BASE" sca)"
-[[ -z "$BASE_USE" ]] && BASE_USE="$(latest_result_base "$BASE" vec)"
-if [[ -z "$BASE_USE" ]]; then
-  echo "No results for base '$BASE' under $RESULTS_DIR"; exit 1
-fi
-
-echo "Testing All Export Types for base: $BASE_USE"
-echo "============================================"
-
-SCA="$RESULTS_DIR/${BASE_USE}.sca"
-VEC="$RESULTS_DIR/${BASE_USE}.vec"
-
-echo "Available data in .sca file:"
-[[ -f "$SCA" ]] && opp_scavetool query "$SCA" || echo "  (no .sca file present)"
-echo ""
-
-if [[ -f "$SCA" ]]; then
-  echo "1. Exporting scalars..."
-  if opp_scavetool export -f JSON -o "$OUTPUT_DIR/${BASE_USE}_scalars.json" -f 'type =~ scalar' "$SCA"; then
-    SIZE=$(ls -lh "$OUTPUT_DIR/${BASE_USE}_scalars.json" | awk '{print $5}')
-    echo "   SUCCESS: ${BASE_USE}_scalars.json ($SIZE)"
+export_one() {
+  local src="$1" filter="$2" out="$3" label="$4"
+  [[ -f "$src" ]] || { echo "  .. $label: missing"; return; }
+  if opp_scavetool export -F JSON -o "$out" -f "$filter" "$src"; then
+    local sz="$(ls -lh "$out" | awk '{print $5}')"
+    echo "  .. $label → $(basename "$out") ($sz)"
   else
-    echo "   FAILED"
+    echo "  .. $label: export failed"
   fi
+}
 
-  echo "2. Exporting parameters..."
-  if opp_scavetool export -f JSON -o "$OUTPUT_DIR/${BASE_USE}_parameters.json" -f 'type =~ parameter' "$SCA"; then
-    SIZE=$(ls -lh "$OUTPUT_DIR/${BASE_USE}_parameters.json" | awk '{print $5}')
-    echo "   SUCCESS: ${BASE_USE}_parameters.json ($SIZE)"
-  else
-    echo "   FAILED"
-  fi
+export_for_basepath() {
+  local base="$1"
+  local dir="$(dirname "$base")"
+  local name="$(basename "$base")"
+  local SCA=""
+  local VEC=""
+  for ext in sca SCA; do [[ -f "$dir/$name.$ext" ]] && { SCA="$dir/$name.$ext"; break; }; done
+  for ext in vec VEC; do [[ -f "$dir/$name.$ext" ]] && { VEC="$dir/$name.$ext"; break; }; done
+  local OUT="$OUTPUT_DIR/$name"
+  echo "→ Export: $name"
+  [[ -n "$SCA" ]] && export_one "$SCA" 'type =~ scalar'     "${OUT}_scalars.json"     "scalars"
+  [[ -n "$SCA" ]] && export_one "$SCA" 'type =~ parameter'  "${OUT}_parameters.json"  "parameters"
+  [[ -n "$SCA" ]] && export_one "$SCA" 'type =~ histogram'  "${OUT}_histograms.json"  "histograms"
+  [[ -n "$VEC" ]] && export_one "$VEC" 'type =~ vector AND module =~ "**.app[*]"' "${OUT}_app_vectors.json" "app vectors"
+  echo ""
+}
 
-  echo "3. Exporting histograms..."
-  if opp_scavetool export -f JSON -o "$OUTPUT_DIR/${BASE_USE}_histograms.json" -f 'type =~ histogram' "$SCA"; then
-    SIZE=$(ls -lh "$OUTPUT_DIR/${BASE_USE}_histograms.json" | awk '{print $5}')
-    echo "   SUCCESS: ${BASE_USE}_histograms.json ($SIZE)"
-  else
-    echo "   FAILED"
-  fi
+export_all_recursive() {
+  local root="$1"
+  [[ -d "$root" ]] || return 0
+  declare -A SEEN=()
+  while IFS= read -r -d '' f; do
+    SEEN["${f%.*}"]=1
+  done < <(find "$root" -type f \( -iname '*.sca' -o -iname '*.vec' \) -print0 2>/dev/null)
+  for b in "${!SEEN[@]}"; do export_for_basepath "$b"; done
+}
 
-  echo "4. Exporting statistics (if any)..."
-  if opp_scavetool export -f JSON -o "$OUTPUT_DIR/${BASE_USE}_statistics.json" -f 'type =~ statistic' "$SCA"; then
-    SIZE=$(ls -lh "$OUTPUT_DIR/${BASE_USE}_statistics.json" | awk '{print $5}')
-    echo "   SUCCESS: ${BASE_USE}_statistics.json ($SIZE)"
-  else
-    echo "   No statistics or export failed"
-  fi
-else
-  echo "ERROR: $SCA not found"
+# -------- modes --------
+ARG="${1:-}"
+
+if [[ -z "$ARG" ]]; then
+  echo "Mode: export ALL (recursive)"
+  export_all_recursive "$RESULTS_DIR"
+  export_all_recursive "$ALT_RESULTS_DIR"
+  echo "✅ done."
+  exit 0
 fi
 
-echo ""
-if [[ -f "$VEC" ]]; then
-  echo "5. Exporting app vectors..."
-  if opp_scavetool export -f JSON -o "$OUTPUT_DIR/${BASE_USE}_app_vectors.json" -f 'type =~ vector AND module =~ "**.app[*]"' "$VEC"; then
-    SIZE=$(ls -lh "$OUTPUT_DIR/${BASE_USE}_app_vectors.json" | awk '{print $5}')
-    echo "   SUCCESS: ${BASE_USE}_app_vectors.json ($SIZE)"
-  else
-    echo "   App filter failed, trying broader pattern..."
-    if opp_scavetool export -f JSON -o "$OUTPUT_DIR/${BASE_USE}_app_vectors.json" -f 'type =~ vector AND module =~ "*app*"' "$VEC"; then
-      SIZE=$(ls -lh "$OUTPUT_DIR/${BASE_USE}_app_vectors.json" | awk '{print $5}')
-      echo "   SUCCESS: ${BASE_USE}_app_vectors.json ($SIZE, broad filter)"
-    else
-      echo "   FAILED"
-    fi
-  fi
-else
-  echo "ERROR: $VEC not found"
+if [[ -f "$ARG" && "$ARG" == *.ini ]]; then
+  # STRICT single-INI mode
+  prefix="$(detect_result_prefix_from_ini "$ARG")"
+  [[ -z "$prefix" ]] && { echo "❌ cannot parse output-* from ini: $ARG"; exit 2; }
+  # find newest .sca/.vec only for this prefix
+  base="$(latest_result_base_any "$prefix" sca)"
+  [[ -z "$base" ]] && base="$(latest_result_base_any "$prefix" vec)"
+  [[ -z "$base" ]] && { echo "❌ no results for prefix '$prefix'"; exit 1; }
+  echo "Mode: INI → prefix '$prefix' → base '$(basename "$base")'"
+  export_for_basepath "$base"
+  echo "✅ done."
+  exit 0
 fi
 
-echo ""
-echo "JSON written under: $OUTPUT_DIR"
-ls -la "$OUTPUT_DIR"/"${BASE_USE}"_*.json 2>/dev/null || true
+# prefix mode
+prefix="$ARG"
+base="$(latest_result_base_any "$prefix" sca)"
+[[ -z "$base" ]] && base="$(latest_result_base_any "$prefix" vec)"
+[[ -z "$base" ]] && { echo "❌ no results for prefix '$prefix'"; exit 1; }
+echo "Mode: prefix '$prefix' → base '$(basename "$base")'"
+export_for_basepath "$base"
+echo "✅ done."

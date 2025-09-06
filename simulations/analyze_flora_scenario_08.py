@@ -90,9 +90,11 @@ def parse_bool(s: Any) -> Optional[bool]:
 # ============================================================================ #
 # discovery
 # ============================================================================ #
-def find_bundle(json_dir: Path, base_name: str) -> Dict[str, Path]:
-    out: Dict[str, Path] = {}
+def find_bundle(json_dir: Path, base_name: str, area: str | None) -> dict[str, Path]:
+    out = {}
     for p in json_dir.glob(f"{base_name}_*.json"):
+        if not name_matches_area(p.name, area): 
+            continue
         low = p.name.lower()
         if "parameters" in low and "parameters" not in out: out["parameters"] = p
         elif "scalars" in low and "scalars" not in out: out["scalars"] = p
@@ -101,18 +103,18 @@ def find_bundle(json_dir: Path, base_name: str) -> Dict[str, Path]:
         elif "vectors" in low and "app_vectors" not in out: out["app_vectors"] = p
     return out
 
-def find_all_bundles(json_dir: Path) -> List[Tuple[str, Dict[str, Path]]]:
+def find_all_bundles(json_dir: Path, area: str | None) -> list[tuple[str, dict]]:
     bases = set()
     for p in json_dir.glob("*.json"):
         n = p.name; low = n.lower()
-        if "scenario-08" in low or ("multi" in low and "gateway" in low):
+        if "scenario-08" in low and name_matches_area(n, area):
             base = re.sub(r"_(parameters|scalars|histograms|statistics|app_vectors|vectors|extracted)\.json$", "", n, flags=re.I)
             bases.add(base)
     out = []
     for base in sorted(bases):
-        b = find_bundle(json_dir, base)
+        b = find_bundle(json_dir, base, area)
         if b.get("parameters") and b.get("scalars"):
-            out.append((base,b))
+            out.append((base, b))
     return out
 
 # ============================================================================ #
@@ -411,7 +413,7 @@ def print_scoreboard(rows: List[Dict[str, Any]]):
     line = "-" * len(header)
 
     print("\n"+ "="*len(header))
-    print("SCENARIO 08 – Multi-Gateway Coordination (OMNeT++ FLoRa) — CLEAN v4")
+    print("SCENARIO 08 – Multi-Gateway Coordination (OMNeT++ FLoRa)")
     print("="*len(header))
     print(header)
     print(line)
@@ -429,6 +431,27 @@ def print_used_keys():
         else:
             print(f"{t.capitalize()}: (none)")
 
+# ---- Area filtering helpers ----
+def _area_aliases(area: str) -> set[str]:
+    """Allow '1x1km' and its '1km' alias (common in your file names)."""
+    a = area.lower().strip().strip("_- ")
+    aliases = {a}
+    if "x" in a and a.endswith("km"):
+        first = a.split("x", 1)[0]  # '1x1km' -> '1'
+        aliases.add(f"{first}km")   # accept '_1km' too
+    return aliases
+
+def name_matches_area(filename: str, area: str | None) -> bool:
+    """True if filename matches requested area (or no area requested)."""
+    if not area:
+        return True
+    n = filename.lower()
+    for alias in _area_aliases(area):
+        if f"_{alias}" in n:       # we require the explicit suffix pattern
+            return True
+    return False
+
+
 # ============================================================================ #
 # main
 # ============================================================================ #
@@ -436,6 +459,8 @@ def main():
     ap = argparse.ArgumentParser(description="Analyze OMNeT++/FLoRa Scenario 08 (clean v4)")
     ap.add_argument("--json-dir", type=Path, default=Path("json_exports"))
     ap.add_argument("--dump-keys", type=Path, default=None)
+    ap.add_argument("--area", type=str, default=None,
+                help="Area suffix to filter files by (e.g. 1x1km, 2x2km, 3x3km).")
     args = ap.parse_args()
 
     if not args.json_dir.exists():
@@ -443,7 +468,7 @@ def main():
         return
 
     print(f"Searching for scenario-08 files in: {args.json_dir}")
-    bundles = find_all_bundles(args.json_dir)
+    bundles = find_all_bundles(args.json_dir, args.area)
     if not bundles:
         print("No Scenario-08 bundles found."); return
 
