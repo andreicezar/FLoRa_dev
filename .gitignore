@@ -51,3 +51,11 @@ simulations/**/log.txt
 *.lfs
 simulation_tool/flora/simulations/config_files_for_scenarios/adr_margin_packet_size_tests/debug_adr_opt_log.txt
 debug_adr_opt_log.txt
+
+# --- IDE / workspace dumps ---
+**/.metadata/**
+**/*.pdom
+**/*.sc
+**/.vscode/**
+**/*.log
+**/python.pydevsysteminfo

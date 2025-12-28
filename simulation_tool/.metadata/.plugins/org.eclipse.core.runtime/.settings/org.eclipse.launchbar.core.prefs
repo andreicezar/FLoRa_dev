@@ -1,9 +1,0 @@
-LaunchTargetManager/org.eclipse.launchbar.core.launchTargetType.local,Local/arch=x86_64
-LaunchTargetManager/org.eclipse.launchbar.core.launchTargetType.local,Local/name=Local
-LaunchTargetManager/org.eclipse.launchbar.core.launchTargetType.local,Local/os=win32
-configDescList=org.eclipse.launchbar.core.descriptorType.default\:scenarios - DER_1GW10ED,org.eclipse.launchbar.core.descriptorType.default\:scenarios - DER_1GW1ED,org.eclipse.launchbar.core.descriptorType.default\:scenarios - DER_2GW1ED,org.eclipse.launchbar.core.descriptorType.default\:scenarios - DER_2GW10ED,org.eclipse.launchbar.core.descriptorType.default\:scenarios - DER_4GW1ED,org.eclipse.launchbar.core.descriptorType.default\:scenarios - DER_6GW10ED,org.eclipse.launchbar.core.descriptorType.default\:scenarios - DER_6GW1ED,org.eclipse.launchbar.core.descriptorType.default\:scenarios - DER_8GW1ED,org.eclipse.launchbar.core.descriptorType.default\:scenarios - DER_8GW10ED,org.eclipse.launchbar.core.descriptorType.default\:scenarios - DER_8GW100ED,org.eclipse.launchbar.core.descriptorType.default\:scenarios - DER_4GW10ED
-eclipse.preferences.version=1
-org.eclipse.launchbar.core.descriptorType.default\:scenarios\ -\ DER_1GW10ED/activeLaunchMode=run
-org.eclipse.launchbar.core.descriptorType.default\:scenarios\ -\ DER_1GW10ED/activeLaunchTarget=org.eclipse.launchbar.core.launchTargetType.local\:Local
-org.eclipse.launchbar.core.descriptorType.default\:scenarios\ -\ DER_8GW10ED/activeLaunchMode=run
-org.eclipse.launchbar.core.descriptorType.default\:scenarios\ -\ DER_8GW10ED/activeLaunchTarget=org.eclipse.launchbar.core.launchTargetType.local\:Local
